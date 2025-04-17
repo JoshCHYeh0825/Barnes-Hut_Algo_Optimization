@@ -1,11 +1,11 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -O2
-LDFLAGS = -lgdi32 -mwindows
+CFLAGS = -Wall -Wextra -O2 -I/opt/homebrew/include
+LDFLAGS = -L/opt/homebrew/lib -lSDL2 -lm
 
 SRCS = vec2.c body.c quadtree.c
 OBJS = $(SRCS:.c=.o)
 MAIN_OBJ = main.o
-TARGET = barnes_hut.exe
+TARGET = barnes_hut
 
 all: $(TARGET)
 
@@ -16,9 +16,10 @@ $(TARGET): $(OBJS) $(MAIN_OBJ)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	del /F /Q $(OBJS) $(MAIN_OBJ) $(TARGET)
+	rm -f $(OBJS) $(MAIN_OBJ) $(TARGET)
 
 run: $(TARGET)
-	.\$(TARGET)
+	./$(TARGET)
 
-.PHONY: all clean run 
+.PHONY: all clean run
+
