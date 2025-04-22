@@ -204,6 +204,7 @@ void quadtree_propagate(Quadtree* qt) {
     }
 }
 
+// can optimize this - basic compiler optimizations
 // Calculate acceleration due to gravity at a position
 Vec2 quadtree_acc(Quadtree* qt, Vec2 pos) {
     Vec2 acc = vec2_zero();

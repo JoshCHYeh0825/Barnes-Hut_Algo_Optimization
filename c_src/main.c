@@ -12,7 +12,7 @@
 #define G 6.67430e-2f
 #define THETA 0.5f
 #define EPSILON 10.0f
-#define NUM_BODIES 50
+#define NUM_BODIES 200
 #define MAX_VELOCITY 1.0f
 #define TIME_SCALE 1.0f
 
@@ -54,6 +54,7 @@ void initialize_simulation(void) {
     quadtree = quadtree_new(THETA, EPSILON);
 }
 
+// pretty straightforward already
 void handle_wall_collisions(Body* body) {
     float damping = 0.8f;
 
@@ -74,6 +75,7 @@ void handle_wall_collisions(Body* body) {
     }
 }
 
+// can optimize anything in this function
 void update_simulation(float dt) {
     dt *= TIME_SCALE;
 
@@ -84,6 +86,7 @@ void update_simulation(float dt) {
         quadtree_insert(quadtree, bodies[i].pos, bodies[i].mass);
     quadtree_propagate(quadtree);
 
+    // can optimize this - multithreading / gpu
     for (int i = 0; i < NUM_BODIES; i++) {
         bodies[i].acc = vec2_mul(quadtree_acc(quadtree, bodies[i].pos), G);
     }
@@ -100,6 +103,7 @@ void update_simulation(float dt) {
         quadtree_insert(quadtree, bodies[i].pos, bodies[i].mass);
     quadtree_propagate(quadtree);
 
+    // can optimize this - multithreading / gpu
     for (int i = 0; i < NUM_BODIES; i++) {
         Vec2 new_acc = vec2_mul(quadtree_acc(quadtree, bodies[i].pos), G);
         bodies[i].vel = vec2_add(bodies[i].vel, vec2_mul(new_acc, dt * 0.5f));
@@ -144,6 +148,9 @@ int main(int argc, char* argv[]) {
     initialize_simulation();
 
     Uint32 last_time = SDL_GetTicks();
+
+    // optimize here!!!!
+    Uint32 start = SDL_GetTicks();
     while (running) {
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
@@ -160,6 +167,11 @@ int main(int argc, char* argv[]) {
         update_simulation(dt);
         render();
         SDL_Delay(16);
+
+        // if its been 10 seconds, exit
+        if (current_time - start > 10000) {
+            running = false;
+        }
     }
 
     cleanup_simulation();

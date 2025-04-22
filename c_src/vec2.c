@@ -1,6 +1,7 @@
 #include "vec2.h"
 #include <math.h>
 
+// pretty good, not much need for optimization
 Vec2 vec2_zero(void) {
     return (Vec2){0.0f, 0.0f};
 }
