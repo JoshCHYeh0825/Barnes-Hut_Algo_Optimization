@@ -156,6 +156,7 @@ void update_simulation(float dt) {
     quadtree_propagate(quadtree);
     
     // Second half of velocity update
+    #pragma omp parallel for
     for (int i = 0; i < NUM_BODIES; i++) {
         Vec2 new_acc = quadtree_acc(quadtree, bodies[i].pos);
         new_acc = vec2_mul(new_acc, G);

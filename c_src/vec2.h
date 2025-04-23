@@ -1,3 +1,7 @@
+#include <xmmintrin.h>
+#include <smmintrin.h>
+#include <immintrin.h>
+
 #ifndef VEC2_H
 #define VEC2_H
 
