@@ -121,7 +121,8 @@ void update_simulation(float dt) {
     // Propagate center of mass calculations
     quadtree_propagate(quadtree);
     
-    // Calculate accelerations
+    // Calculate accelerations, PARALLELIZED
+    #pragma omp parallel for
     for (int i = 0; i < NUM_BODIES; i++) {
         bodies[i].acc = quadtree_acc(quadtree, bodies[i].pos);
         // Scale by G
@@ -129,6 +130,7 @@ void update_simulation(float dt) {
     }
     
     // Update positions and velocities using a more stable integrator (velocity Verlet)
+    #pragma omp parallel for
     for (int i = 0; i < NUM_BODIES; i++) {
         // Save old acceleration for integrator
         Vec2 old_acc = bodies[i].acc;
