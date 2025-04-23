@@ -12,7 +12,9 @@
 #define G 6.67430e-2f
 #define THETA 0.5f
 #define EPSILON 10.0f
-#define NUM_BODIES 200
+#define NUM_BODIES 1000
+#define NUM_TRIALS 5
+
 #define MAX_VELOCITY 1.0f
 #define TIME_SCALE 1.0f
 
@@ -134,15 +136,16 @@ void render(void) {
 }
 
 int main(int argc, char* argv[]) {
+        
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         fprintf(stderr, "SDL_Init Error: %s\n", SDL_GetError());
         return 1;
     }
 
     window = SDL_CreateWindow("Barnes-Hut Simulation",
-                              SDL_WINDOWPOS_CENTERED,
-                              SDL_WINDOWPOS_CENTERED,
-                              WINDOW_WIDTH, WINDOW_HEIGHT, 0);
+                            SDL_WINDOWPOS_CENTERED,
+                            SDL_WINDOWPOS_CENTERED,
+                            WINDOW_WIDTH, WINDOW_HEIGHT, 0);
     renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
 
     initialize_simulation();
@@ -151,6 +154,7 @@ int main(int argc, char* argv[]) {
 
     // optimize here!!!!
     Uint32 start = SDL_GetTicks();
+    int iterations = 0;
     while (running) {
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
@@ -168,6 +172,8 @@ int main(int argc, char* argv[]) {
         render();
         SDL_Delay(16);
 
+        iterations++;
+
         // if its been 10 seconds, exit
         if (current_time - start > 10000) {
             running = false;
@@ -178,6 +184,10 @@ int main(int argc, char* argv[]) {
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
+
+    // print the average iterations per second
+    printf("Average iterations per second: %f\n", (float)iterations / 10.0f);
+    
     return 0;
 }
 
