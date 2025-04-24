@@ -246,9 +246,9 @@ Vec2 quadtree_acc(Quadtree* qt, Vec2 pos) {
             */
 
             // Replaced powf
-            float d2 = fmaxf(d_sq + qt->e_sq, 1e-5f);
-            float inv_d = 1.0f / sqrtf(d2);
-            float denom = inv_d * inv_d * inv_d;
+            float d2 = fmaxf(d_sq + qt->e_sq, 1e-2f); // increased floor
+            float denom = powf(d2, 1.5f);             // fallback to stable powf
+            
             
             // Clamp upper limit of force (optional safety net)
             denom = fminf(denom, 1e6f); // cap the max force to prevent blowout
