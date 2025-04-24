@@ -122,7 +122,7 @@ void update_simulation(float dt) {
     quadtree_propagate(quadtree);
     
     // Calculate accelerations, PARALLELIZED
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for (int i = 0; i < NUM_BODIES; i++) {
         bodies[i].acc = quadtree_acc(quadtree, bodies[i].pos);
         // Scale by G
@@ -130,7 +130,7 @@ void update_simulation(float dt) {
     }
     
     // Update positions and velocities using a more stable integrator (velocity Verlet)
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for (int i = 0; i < NUM_BODIES; i++) {
         // Save old acceleration for integrator
         Vec2 old_acc = bodies[i].acc;
@@ -156,7 +156,7 @@ void update_simulation(float dt) {
     quadtree_propagate(quadtree);
     
     // Second half of velocity update
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for (int i = 0; i < NUM_BODIES; i++) {
         Vec2 new_acc = quadtree_acc(quadtree, bodies[i].pos);
         new_acc = vec2_mul(new_acc, G);

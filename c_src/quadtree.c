@@ -204,11 +204,15 @@ void quadtree_propagate(Quadtree* qt) {
     }
 }
 
+// can optimize this - basic compiler optimizations
 // Calculate acceleration due to gravity at a position
 Vec2 quadtree_acc(Quadtree* qt, Vec2 pos) {
     Vec2 acc = vec2_zero();
     unsigned int node = ROOT;
     
+    // multithread?
+    // go down linked list, for each node (node is int index in nodes array)
+    // put on one thread and run with OpenMP
     while (node < qt->node_count) {
         Node* n = &qt->nodes[node];
         
@@ -236,6 +240,7 @@ Vec2 quadtree_acc(Quadtree* qt, Vec2 pos) {
         
         if (node_is_leaf(n) || (n->quad.size * n->quad.size < d_sq * qt->t_sq)) {
             // Use approximation if far enough or a leaf
+            // Use alternative to powf? lower accuracy though
             float denom = powf(d_sq + qt->e_sq, 1.5f);
             if (denom > 0) {
                 float force = n->mass / denom;
