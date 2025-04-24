@@ -246,15 +246,18 @@ Vec2 quadtree_acc(Quadtree* qt, Vec2 pos) {
             */
 
             // Replaced powf
-            float d2 = fmaxf(d_sq + qt->e_sq, 1e-2f); // increased floor
-            float denom = powf(d2, 1.5f);             // fallback to stable powf
-            
-            
-            // Clamp upper limit of force (optional safety net)
-            denom = fminf(denom, 1e6f); // cap the max force to prevent blowout
-            
-            float force = n->mass / denom;
-            acc = vec2_add(acc, vec2_mul(d, force));
+            float d2 = d_sq + qt->e_sq;
+
+            // Use fast approximation only when d2 is large enough
+            if (d2 > 1.0f) {
+                float inv_d = 1.0f / sqrtf(d2);
+                float denom = inv_d * inv_d * inv_d;
+                acc = vec2_add(acc, vec2_mul(d, n->mass * denom));
+            } else {
+                // Fall back to stable powf for close distances
+                float denom = powf(fmaxf(d2, 1e-5f), 1.5f);
+                acc = vec2_add(acc, vec2_mul(d, n->mass / denom));
+            }
             
             // Move to next node at same level
             if (n->next == 0) {
