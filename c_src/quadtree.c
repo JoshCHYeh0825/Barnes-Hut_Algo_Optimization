@@ -207,6 +207,12 @@ void quadtree_propagate(Quadtree* qt) {
 // Calculate acceleration due to gravity at a position
 Vec2 quadtree_acc(Quadtree* qt, Vec2 pos) {
     Vec2 acc = vec2_zero();
+
+    // Check for empty tree
+    if (qt->node_count == 0 || qt->nodes[ROOT].mass == 0.0f) {
+        return vec2_zero();
+    }
+
     unsigned int node = ROOT;
     
     while (node < qt->node_count) {
@@ -240,13 +246,15 @@ Vec2 quadtree_acc(Quadtree* qt, Vec2 pos) {
             */
 
             // Replaced powf
-            float inv_d = 1.0f / sqrtf(d_sq + qt->e_sq);
+            float d2 = fmaxf(d_sq + qt->e_sq, 1e-5f);
+            float inv_d = 1.0f / sqrtf(d2);
             float denom = inv_d * inv_d * inv_d;
-
-            if (denom > 0) {
-                float force = n->mass / denom;
-                acc = vec2_add(acc, vec2_mul(d, force));
-            }
+            
+            // Clamp upper limit of force (optional safety net)
+            denom = fminf(denom, 1e6f); // cap the max force to prevent blowout
+            
+            float force = n->mass / denom;
+            acc = vec2_add(acc, vec2_mul(d, force));
             
             // Move to next node at same level
             if (n->next == 0) {
