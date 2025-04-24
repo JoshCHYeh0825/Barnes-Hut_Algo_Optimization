@@ -241,22 +241,11 @@ Vec2 quadtree_acc(Quadtree* qt, Vec2 pos) {
         }
         
         if (node_is_leaf(n) || (n->quad.size * n->quad.size < d_sq * qt->t_sq)) {
-            /*Use approximation if far enough or a leaf
+            // Use approximation if far enough or a leaf
             float denom = powf(d_sq + qt->e_sq, 1.5f);
-            */
-
-            // Replaced powf
-            float d2 = d_sq + qt->e_sq;
-
-            // Use fast approximation only when d2 is large enough
-            if (d2 > 1.0f) {
-                float inv_d = 1.0f / sqrtf(d2);
-                float denom = inv_d * inv_d * inv_d;
-                acc = vec2_add(acc, vec2_mul(d, n->mass * denom));
-            } else {
-                // Fall back to stable powf for close distances
-                float denom = powf(fmaxf(d2, 1e-5f), 1.5f);
-                acc = vec2_add(acc, vec2_mul(d, n->mass / denom));
+            if (denom > 0) {
+                float force = n->mass / denom;
+                acc = vec2_add(acc, vec2_mul(d, force));
             }
             
             // Move to next node at same level
