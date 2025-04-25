@@ -1,220 +1,278 @@
-#include <SDL/SDL.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <math.h>
-#include <time.h>
-#include "body.h"
 #include "quadtree.h"
+#include <stdlib.h>
+#include <math.h>
+#include <float.h>
+#include <string.h>
 
-#define WINDOW_WIDTH 450
-#define WINDOW_HEIGHT 450
-#define G 6.67430e-2f
-#define THETA 0.5f
-#define EPSILON 10.0f
-#define NUM_TRIALS 10
+#define ROOT 0
+#define QUADTREE_INITIAL_CAPACITY 256
 
-#define MAX_VELOCITY 1.0f
-#define TIME_SCALE 1.0f
+// Create a new quadrant containing all bodies
+Quad quad_new_containing(Body* bodies, int count) {
+    float min_x = FLT_MAX;
+    float min_y = FLT_MAX;
+    float max_x = -FLT_MAX;
+    float max_y = -FLT_MAX;
 
-SDL_Window* window = NULL;
-SDL_Renderer* renderer = NULL;
-Body* bodies = NULL;
-Quadtree* quadtree = NULL;
-
-void initialize_simulation(int num_bodies);
-void update_simulation(float dt, int num_bodies);
-void cleanup_simulation(void);
-
-void initialize_simulation(int num_bodies) {
-    srand((unsigned int)time(NULL));
-    bodies = (Body*)malloc(num_bodies * sizeof(Body));
-
-    float center_x = WINDOW_WIDTH / 2.0f;
-    float center_y = WINDOW_HEIGHT / 2.0f;
-    float max_radius = fminf(WINDOW_WIDTH, WINDOW_HEIGHT) * 0.4f;
-
-    for (int i = 0; i < num_bodies; i++) {
-        float angle = ((float)rand() / RAND_MAX) * 2.0f * M_PI;
-        float distance = ((float)rand() / RAND_MAX) * max_radius;
-        float x = center_x + cosf(angle) * distance;
-        float y = center_y + sinf(angle) * distance;
-
-        float vel_angle = angle + M_PI / 2.0f + (((float)rand() / RAND_MAX) - 0.5f) * 0.5f;
-        float vel_magnitude = MAX_VELOCITY * sqrtf(distance / max_radius);
-        float vx = cosf(vel_angle) * vel_magnitude;
-        float vy = sinf(vel_angle) * vel_magnitude;
-
-        float radius = 2.0f + ((float)rand() / RAND_MAX) * 6.0f;
-        float mass = radius * radius;
-
-        bodies[i] = body_new(vec2_new(x, y), vec2_new(vx, vy), mass, radius);
+    for (int i = 0; i < count; i++) {
+        min_x = fminf(min_x, bodies[i].pos.x);
+        min_y = fminf(min_y, bodies[i].pos.y);
+        max_x = fmaxf(max_x, bodies[i].pos.x);
+        max_y = fmaxf(max_y, bodies[i].pos.y);
     }
 
-    quadtree = quadtree_new(THETA, EPSILON);
-}
-
-// pretty straightforward already
-void handle_wall_collisions(Body* body) {
-    float damping = 0.8f;
-
-    if (body->pos.x - body->radius < 0) {
-        body->pos.x = body->radius;
-        body->vel.x = fabsf(body->vel.x) * damping;
-    } else if (body->pos.x + body->radius > WINDOW_WIDTH) {
-        body->pos.x = WINDOW_WIDTH - body->radius;
-        body->vel.x = -fabsf(body->vel.x) * damping;
-    }
-
-    if (body->pos.y - body->radius < 0) {
-        body->pos.y = body->radius;
-        body->vel.y = fabsf(body->vel.y) * damping;
-    } else if (body->pos.y + body->radius > WINDOW_HEIGHT) {
-        body->pos.y = WINDOW_HEIGHT - body->radius;
-        body->vel.y = -fabsf(body->vel.y) * damping;
-    }
-}
-
-// can optimize anything in this function
-void update_simulation(float dt, int num_bodies) {
-    dt *= TIME_SCALE;
-
-    Quad quad = quad_new_containing(bodies, num_bodies);
-    quadtree_clear(quadtree, quad);
-
-    for (int i = 0; i < num_bodies; i++)
-        quadtree_insert(quadtree, bodies[i].pos, bodies[i].mass);
-    quadtree_propagate(quadtree);
-
-    // can optimize this - multithreading / gpu
-    for (int i = 0; i < num_bodies; i++) {
-        bodies[i].acc = vec2_mul(quadtree_acc(quadtree, bodies[i].pos), G);
-    }
-
-    for (int i = 0; i < num_bodies; i++) {
-        bodies[i].vel = vec2_add(bodies[i].vel, vec2_mul(bodies[i].acc, dt * 0.5f));
-        bodies[i].pos = vec2_add(bodies[i].pos, vec2_mul(bodies[i].vel, dt));
-        handle_wall_collisions(&bodies[i]);
-    }
-
-    quad = quad_new_containing(bodies, num_bodies);
-    quadtree_clear(quadtree, quad);
-    for (int i = 0; i < num_bodies; i++)
-        quadtree_insert(quadtree, bodies[i].pos, bodies[i].mass);
-    quadtree_propagate(quadtree);
-
-    // can optimize this - multithreading / gpu
-    for (int i = 0; i < num_bodies; i++) {
-        Vec2 new_acc = vec2_mul(quadtree_acc(quadtree, bodies[i].pos), G);
-        bodies[i].vel = vec2_add(bodies[i].vel, vec2_mul(new_acc, dt * 0.5f));
-        bodies[i].acc = new_acc;
-    }
-}
-
-void cleanup_simulation(void) {
-    free(bodies);
-    quadtree_free(quadtree);
-}
-
-void render(int num_bodies) {
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-    SDL_RenderClear(renderer);
-
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-    for (int i = 0; i < num_bodies; i++) {
-        SDL_FRect rect = {
-            bodies[i].pos.x - bodies[i].radius,
-            bodies[i].pos.y - bodies[i].radius,
-            bodies[i].radius * 2.0f,
-            bodies[i].radius * 2.0f
-        };
-        SDL_RenderFillRectF(renderer, &rect);
-    }
-    SDL_RenderPresent(renderer);
-}
-
-int main(void) {
+    Vec2 center = vec2_mul(vec2_new(min_x + max_x, min_y + max_y), 0.5f);
+    float size = fmaxf(max_x - min_x, max_y - min_y);
     
-    int a = 1000;
-    int b = 500;
-    int c = 100;
+    Quad quad = {center, size};
+    return quad;
+}
 
-    int num_bodies = 0;
-    int i = 0;
+// Find which quadrant a position falls into (0-3)
+unsigned int quad_find_quadrant(Quad* quad, Vec2 pos) {
+    return ((pos.y > quad->center.y) << 1) | (pos.x > quad->center.x);
+}
+
+// Convert a quadrant into a subquadrant
+Quad quad_into_quadrant(Quad quad, unsigned int quadrant) {
+    quad.size *= 0.5f;
+    quad.center.x += ((quadrant & 1) - 0.5f) * quad.size;
+    quad.center.y += ((quadrant >> 1) - 0.5f) * quad.size;
+    return quad;
+}
+
+// Subdivide a quadrant into four subquadrants
+void quad_subdivide(Quad* quad, Quad* subquads) {
+    for (int i = 0; i < 4; i++) {
+        subquads[i] = quad_into_quadrant(*quad, i);
+    }
+}
+
+// Create a new node
+Node node_new(unsigned int next, Quad quad) {
+    Node node;
+    node.children = 0;
+    node.next = next;
+    node.pos = vec2_zero();
+    node.mass = 0.0f;
+    node.quad = quad;
+    return node;
+}
+
+// Check if a node is a leaf (has no children)
+int node_is_leaf(Node* node) {
+    return node->children == 0;
+}
+
+// Check if a node is a branch (has children)
+int node_is_branch(Node* node) {
+    return node->children != 0;
+}
+
+// Check if a node is empty (has no mass)
+int node_is_empty(Node* node) {
+    return node->mass == 0.0f;
+}
+
+// Create a new quadtree
+Quadtree* quadtree_new(float theta, float epsilon) {
+    Quadtree* qt = (Quadtree*)malloc(sizeof(Quadtree));
+    qt->t_sq = theta * theta;
+    qt->e_sq = epsilon * epsilon;
+    qt->capacity = QUADTREE_INITIAL_CAPACITY;
+    qt->nodes = (Node*)malloc(qt->capacity * sizeof(Node));
+    qt->parents = (unsigned int*)malloc(qt->capacity * sizeof(unsigned int));
+    qt->node_count = 0;
+    qt->parent_count = 0;
+    return qt;
+}
+
+// Clear the quadtree and initialize with a new quadrant
+void quadtree_clear(Quadtree* qt, Quad quad) {
+    qt->node_count = 1;
+    qt->parent_count = 0;
+    qt->nodes[ROOT] = node_new(0, quad);
+}
+
+// Ensure the quadtree has enough capacity
+void quadtree_ensure_capacity(Quadtree* qt, unsigned int needed) {
+    if (qt->capacity >= needed) return;
     
-    // logging
-    int num_bodies_log[NUM_TRIALS];
-    int num_iterations_log[NUM_TRIALS];
-
-    for (i = 0; i < NUM_TRIALS; i++) {
-        bodies = NULL;
-        quadtree = NULL;
-
-        num_bodies = a*i*i + b*i + c;
-        printf("num_bodies: %d\n", num_bodies);
+    while (qt->capacity < needed) {
+        qt->capacity *= 2;
+    }
     
+    qt->nodes = (Node*)realloc(qt->nodes, qt->capacity * sizeof(Node));
+    qt->parents = (unsigned int*)realloc(qt->parents, qt->capacity * sizeof(unsigned int));
+}
 
-        if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-            fprintf(stderr, "SDL_Init Error: %s\n", SDL_GetError());
-            return 1;
-        }
+// Subdivide a node in the quadtree
+unsigned int quadtree_subdivide(Quadtree* qt, unsigned int node_index) {
+    // Ensure capacity for 4 new nodes
+    quadtree_ensure_capacity(qt, qt->node_count + 4);
+    
+    // Record this as a parent
+    qt->parents[qt->parent_count++] = node_index;
+    
+    unsigned int children = qt->node_count;
+    qt->nodes[node_index].children = children;
+    
+    unsigned int nexts[4] = {
+        children + 1,
+        children + 2,
+        children + 3,
+        qt->nodes[node_index].next
+    };
+    
+    Quad quads[4];
+    quad_subdivide(&qt->nodes[node_index].quad, quads);
+    
+    for (int i = 0; i < 4; i++) {
+        qt->nodes[qt->node_count++] = node_new(nexts[i], quads[i]);
+    }
+    
+    return children;
+}
 
-        window = SDL_CreateWindow("Barnes-Hut Simulation",
-                                SDL_WINDOWPOS_CENTERED,
-                                SDL_WINDOWPOS_CENTERED,
-                                WINDOW_WIDTH, WINDOW_HEIGHT, 0);
-        renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-
-        initialize_simulation(num_bodies);
-
-        Uint32 last_time = SDL_GetTicks();
-
-        // optimize here!!!!
-        Uint32 start = SDL_GetTicks();
-        int iterations = 0;
-        bool running = true;
-        while (running) {
-            SDL_Event e;
-            while (SDL_PollEvent(&e)) {
-                if (e.type == SDL_QUIT)
-                    running = false;
-            }
-
-            Uint32 current_time = SDL_GetTicks();
-            float dt = (current_time - last_time) / 1000.0f;
-            last_time = current_time;
-
-            if (dt > 0.05f) dt = 0.05f;
-
-            update_simulation(dt, num_bodies);
-            render(num_bodies);
-            SDL_Delay(16);
-
-            iterations++;
-
-            // if its been 10 seconds, exit
-            if (current_time - start > 10000) {
-                running = false;
-            }
-        }
-
-        cleanup_simulation();
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-
-        // print the average iterations per second
-        printf("Average iterations per second: %f\n", (float)iterations / 10.0f);
+// Insert a position and mass into the quadtree
+void quadtree_insert(Quadtree* qt, Vec2 pos, float mass) {
+    unsigned int node = ROOT;
+    
+    while (node_is_branch(&qt->nodes[node])) {
+        unsigned int quadrant = quad_find_quadrant(&qt->nodes[node].quad, pos);
+        node = qt->nodes[node].children + quadrant;
+    }
+    
+    if (node_is_empty(&qt->nodes[node])) {
+        qt->nodes[node].pos = pos;
+        qt->nodes[node].mass = mass;
+        return;
+    }
+    
+    Vec2 p = qt->nodes[node].pos;
+    float m = qt->nodes[node].mass;
+    
+    // If positions are identical, just add mass
+    if (p.x == pos.x && p.y == pos.y) {
+        qt->nodes[node].mass += mass;
+        return;
+    }
+    
+    // Otherwise, subdivide until we can separate them
+    while (1) {
+        unsigned int children = quadtree_subdivide(qt, node);
         
-        // update logging
-        num_bodies_log[i] = num_bodies;
-        num_iterations_log[i] = iterations;
+        unsigned int q1 = quad_find_quadrant(&qt->nodes[node].quad, p);
+        unsigned int q2 = quad_find_quadrant(&qt->nodes[node].quad, pos);
+        
+        if (q1 == q2) {
+            node = children + q1;
+        } else {
+            unsigned int n1 = children + q1;
+            unsigned int n2 = children + q2;
+            
+            qt->nodes[n1].pos = p;
+            qt->nodes[n1].mass = m;
+            qt->nodes[n2].pos = pos;
+            qt->nodes[n2].mass = mass;
+            return;
+        }
     }
-
-    printf("num_bodies,num_iterations\n");
-    for(i = 0; i < NUM_TRIALS; i++) {
-        printf("%d %.3f\n", num_bodies_log[i], (float)num_iterations_log[i]/10.0);
-    }
-
-    return 0;
 }
+
+// Propagate center of mass calculations up the tree
+void quadtree_propagate(Quadtree* qt) {
+    for (int i = qt->parent_count - 1; i >= 0; i--) {
+        unsigned int node = qt->parents[i];
+        unsigned int children = qt->nodes[node].children;
+        
+        Vec2 com = vec2_zero();
+        float total_mass = 0.0f;
+        
+        for (int j = 0; j < 4; j++) {
+            unsigned int child = children + j;
+            float child_mass = qt->nodes[child].mass;
+            
+            com = vec2_add(com, vec2_mul(qt->nodes[child].pos, child_mass));
+            total_mass += child_mass;
+        }
+        
+        qt->nodes[node].mass = total_mass;
+        if (total_mass > 0) {
+            qt->nodes[node].pos = vec2_mul(com, 1.0f / total_mass);
+        }
+    }
+}
+
+// Calculate acceleration due to gravity at a position
+Vec2 quadtree_acc(Quadtree* qt, Vec2 pos) {
+    Vec2 acc = vec2_zero();
+
+    // Check for empty tree
+    if (qt->node_count == 0 || qt->nodes[ROOT].mass == 0.0f) {
+        return vec2_zero();
+    }
+
+    unsigned int node = ROOT;
+    
+    while (node < qt->node_count) {
+        Node* n = &qt->nodes[node];
+        
+        // Skip nodes with no mass
+        if (n->mass <= 0.0f) {
+            if (n->next == 0) {
+                break;
+            }
+            node = n->next;
+            continue;
+        }
+        
+        Vec2 d = vec2_sub(n->pos, pos);
+        // More efficient way to calculate magnitude squared
+        float d_sq = d.x * d.x + d.y * d.y;
+        
+        // Skip self-node (prevent self-gravity)
+        if (d_sq < 0.0001f) {
+            if (n->next == 0) {
+                break;
+            }
+            node = n->next;
+            continue;
+        }
+        
+        if (node_is_leaf(n) || (n->quad.size * n->quad.size < d_sq * qt->t_sq)) {
+            /*Use approximation if far enough or a leaf
+            float denom = powf(d_sq + qt->e_sq, 1.5f);
+            */
+
+            // Replaced powf
+            float d2 = fmaxf(d_sq + qt->e_sq, 1e-5f);
+            float inv_d = 1.0f / sqrtf(d2);
+            float denom = inv_d * inv_d * inv_d;
+            
+            // Clamp upper limit of force (optional safety net)
+            denom = fminf(denom, 1e6f); // cap the max force to prevent blowout
+            
+            float force = n->mass / denom;
+            acc = vec2_add(acc, vec2_mul(d, force));
+            
+            // Move to next node at same level
+            if (n->next == 0) {
+                break;
+            }
+            node = n->next;
+        } else {
+            // Descend into children if too close
+            node = n->children;
+        }
+    }
+    
+    return acc;
+}
+
+// Free the quadtree
+void quadtree_free(Quadtree* qt) {
+    free(qt->nodes);
+    free(qt->parents);
+    free(qt);
+} 
