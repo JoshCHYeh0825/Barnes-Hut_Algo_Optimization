@@ -185,7 +185,7 @@ void quadtree_insert(Quadtree* qt, Vec2 pos, float mass) {
 // Changed to loop unrolling
 //Trying OpenMP
 void quadtree_propagate(Quadtree* qt) {
-    #pragma omp parallal for
+    #pragma omp parallel for
     for (int i = qt->parent_count - 1; i >= 0; i--) {
         unsigned int node = qt->parents[i];
         unsigned int children = qt->nodes[node].children;
