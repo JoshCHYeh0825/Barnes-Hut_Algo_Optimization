@@ -3,6 +3,7 @@
 #include <math.h>
 #include <float.h>
 #include <string.h>
+#include <omp.h>
 
 #define ROOT 0
 #define QUADTREE_INITIAL_CAPACITY 256
@@ -182,11 +183,14 @@ void quadtree_insert(Quadtree* qt, Vec2 pos, float mass) {
 
 // Propagate center of mass calculations up the tree
 // Changed to loop unrolling
+//Trying OpenMP
 void quadtree_propagate(Quadtree* qt) {
+    #pragma omp parallale for
     for (int i = qt->parent_count - 1; i >= 0; i--) {
         unsigned int node = qt->parents[i];
         unsigned int children = qt->nodes[node].children;
-
+        
+        // Declared these new floats
         float total_mass = 0.0f;
         float com_x = 0.0f;
         float com_y = 0.0f;
