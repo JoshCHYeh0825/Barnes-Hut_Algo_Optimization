@@ -181,11 +181,17 @@ void quadtree_insert(Quadtree* qt, Vec2 pos, float mass) {
 }
 
 // Propagate center of mass calculations up the tree
+// Changed to loop unrolling
 void quadtree_propagate(Quadtree* qt) {
     for (int i = qt->parent_count - 1; i >= 0; i--) {
         unsigned int node = qt->parents[i];
         unsigned int children = qt->nodes[node].children;
+
+        float total_mass = 0.0f;
+        float com_x = 0.0f;
+        float com_y = 0.0f;
         
+        /*
         Vec2 com = vec2_zero();
         float total_mass = 0.0f;
         
@@ -196,70 +202,75 @@ void quadtree_propagate(Quadtree* qt) {
             com = vec2_add(com, vec2_mul(qt->nodes[child].pos, child_mass));
             total_mass += child_mass;
         }
-        
+        */
+
+           // Manual unrolling for 4 children
+           for (int j = 0; j < 4; j++) {
+            Node* child_node = &qt->nodes[children + j];
+            float mass = child_node->mass;
+            total_mass += mass;
+            com_x += child_node->pos.x * mass;
+            com_y += child_node->pos.y * mass;
+        }
+
         qt->nodes[node].mass = total_mass;
-        if (total_mass > 0) {
-            qt->nodes[node].pos = vec2_mul(com, 1.0f / total_mass);
+        if (total_mass > 0.0f) {
+            qt->nodes[node].pos.x = com_x / total_mass;
+            qt->nodes[node].pos.y = com_y / total_mass;
         }
     }
 }
 
 // Calculate acceleration due to gravity at a position
+// Optiumized memory and accumulators
 Vec2 quadtree_acc(Quadtree* qt, Vec2 pos) {
-    Vec2 acc = vec2_zero();
-
-    // Check for empty tree
-    if (qt->node_count == 0 || qt->nodes[ROOT].mass == 0.0f) {
-        return vec2_zero();
-    }
-
+    // Vec2 acc = vec2_zero();
+    float acc_x = 0.0f, acc_y = 0.0f;
     unsigned int node = ROOT;
     
     while (node < qt->node_count) {
         Node* n = &qt->nodes[node];
         
         // Skip nodes with no mass
+        // Include node = n->next into the condition
         if (n->mass <= 0.0f) {
-            if (n->next == 0) {
-                break;
-            }
+            if (n->next == 0) break;
             node = n->next;
             continue;
         }
         
-        Vec2 d = vec2_sub(n->pos, pos);
+        float dx = n->pos.x - pos.x;
+        float dy = n->pos.y - pos.y;
+        float d_sq = dx * dx + dy * dy;
+
+        // Vec2 d = vec2_sub(n->pos, pos);
         // More efficient way to calculate magnitude squared
-        float d_sq = d.x * d.x + d.y * d.y;
+        // float d_sq = d.x * d.x + d.y * d.y;
         
         // Skip self-node (prevent self-gravity)
+        // Include node = n->next into the condition
         if (d_sq < 0.0001f) {
-            if (n->next == 0) {
-                break;
-            }
+            if (n->next == 0) break;
             node = n->next;
             continue;
         }
         
         if (node_is_leaf(n) || (n->quad.size * n->quad.size < d_sq * qt->t_sq)) {
-            /*Use approximation if far enough or a leaf
+            // Use approximation if far enough or a leaf
             float denom = powf(d_sq + qt->e_sq, 1.5f);
-            */
-
-            // Replaced powf
-            float d2 = fmaxf(d_sq + qt->e_sq, 1e-5f);
-            float inv_d = 1.0f / sqrtf(d2);
-            float denom = inv_d * inv_d * inv_d;
-            
-            // Clamp upper limit of force (optional safety net)
-            denom = fminf(denom, 1e6f); // cap the max force to prevent blowout
-            
-            float force = n->mass / denom;
-            acc = vec2_add(acc, vec2_mul(d, force));
+            if (denom > 0.0f) {
+                /*
+                float force = n->mass / denom;
+                acc = vec2_add(acc, vec2_mul(d, force));
+                */
+               float f = n->mass / denom;
+               acc_x += dx * f;
+               acc_y += dy * f;
+               // replaces acc to stop vec2 function calls
+           }
             
             // Move to next node at same level
-            if (n->next == 0) {
-                break;
-            }
+            if (n->next == 0) break;
             node = n->next;
         } else {
             // Descend into children if too close
@@ -267,7 +278,7 @@ Vec2 quadtree_acc(Quadtree* qt, Vec2 pos) {
         }
     }
     
-    return acc;
+    return /* acc */ vec2_new(acc_x, acc_y);
 }
 
 // Free the quadtree
