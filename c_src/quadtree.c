@@ -133,7 +133,7 @@ void render(int num_bodies) {
     SDL_RenderPresent(renderer);
 }
 
-int main(int argc, char* argv[]) {
+int main(void) {
     
     int a = 1000;
     int b = 500;
