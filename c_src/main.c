@@ -6,6 +6,7 @@
 #include <time.h>
 #include "body.h"
 #include "quadtree.h"
+
 #include <limits.h>
 #include <omp.h>
 
@@ -35,7 +36,6 @@ void initialize_simulation(int num_bodies) {
     float center_y = WINDOW_HEIGHT / 2.0f;
     float max_radius = fminf(WINDOW_WIDTH, WINDOW_HEIGHT) * 0.4f;
 
-    #pragma omp parallel for schedule(dynamic)
     for (int i = 0; i < num_bodies; i++) {
         float angle = ((float)rand() / RAND_MAX) * 2.0f * M_PI;
         float distance = ((float)rand() / RAND_MAX) * max_radius;
@@ -54,6 +54,10 @@ void initialize_simulation(int num_bodies) {
     }
 
     quadtree = quadtree_new(THETA, EPSILON);
+
+    cudaMalloc(&d_bodies, num_bodies * sizeof(Body));
+    cudaMalloc(&d_quadtree, sizeof(Quadtree));
+    cudaMemcpy(d_quadtree, quadtree, sizeof(Quadtree), cudaMemcpyHostToDevice);
 }
 
 void handle_wall_collisions(Body* body) {
@@ -86,42 +90,19 @@ void update_simulation(float dt, int num_bodies) {
         quadtree_insert(quadtree, bodies[i].pos, bodies[i].mass);
     quadtree_propagate(quadtree);
 
-    // Parallelize quadtree function call
-    #pragma omp parallel for schedule(dynamic)
-    for (int i = 0; i < num_bodies; i++) {
-        // In tree structure
-        // Vec2 acc_i = quadtree_acc(quadtree, bodies[i].pos);
-        // bodies[i].acc = vec2_mul(acc_i, G);
+    cudaMemcpy(d_bodies, bodies, num_bodies * sizeof(Body), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_quadtree, quadtree, sizeof(Quadtree), cudaMemcpyHostToDevice);
 
-        // Array flattened structure:
-        bodies[i].acc = vec2_mul(quadtree_acc(quadtree, bodies[i].pos), G);
-    }
-    
+    update_simulation_gpu(d_bodies, d_quadtree, num_bodies, dt, G);
 
-    #pragma omp parallel for schedule(dynamic)
-    for (int i = 0; i < num_bodies; i++) {
-        bodies[i].vel = vec2_add(bodies[i].vel, vec2_mul(bodies[i].acc, dt * 0.5f));
-        bodies[i].pos = vec2_add(bodies[i].pos, vec2_mul(bodies[i].vel, dt));
-        handle_wall_collisions(&bodies[i]);
-    }
-
-    quad = quad_new_containing(bodies, num_bodies);
-    quadtree_clear(quadtree, quad);
-    for (int i = 0; i < num_bodies; i++)
-        quadtree_insert(quadtree, bodies[i].pos, bodies[i].mass);
-    quadtree_propagate(quadtree);
-
-    #pragma omp parallel for schedule(dynamic)
-    for (int i = 0; i < num_bodies; i++) {
-        Vec2 new_acc = vec2_mul(quadtree_acc(quadtree, bodies[i].pos), G);
-        bodies[i].vel = vec2_add(bodies[i].vel, vec2_mul(new_acc, dt * 0.5f));
-        bodies[i].acc = new_acc;
-    }
+    cudaMemcpy(bodies, d_bodies, num_bodies * sizeof(Body), cudaMemcpyDeviceToHost);
 }
 
 void cleanup_simulation(void) {
     free(bodies);
     quadtree_free(quadtree);
+    cudaFree(d_bodies);
+    cudaFree(d_quadtree);
 }
 
 void render(int num_bodies) {
@@ -152,8 +133,6 @@ int main(void) {
     int num_iterations_log[NUM_TRIALS];
 
     for (i = 0; i < NUM_TRIALS; i++) {
-        bodies = NULL;
-        quadtree = NULL;
 
         num_bodies = a*i*i + b*i + c;
         printf("num_bodies: %d\n", num_bodies);
