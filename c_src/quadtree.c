@@ -267,7 +267,7 @@ void quadtree_propagate(Quadtree* qt) {
 Vec2 quadtree_acc(Quadtree* qt, Vec2 pos) {
     float acc_x = 0.0f, acc_y = 0.0f;
 
-    unsigned int stack[256]; // fixed stack depth
+    unsigned int stack[16384]; // fixed stack depth
     int stack_size = 0;
     stack[stack_size++] = ROOT;
 
