@@ -6,6 +6,8 @@
 #include <time.h>
 #include "body.h"
 #include "quadtree.h"
+#include <limits.h>
+#include <omp.h>
 
 #define WINDOW_WIDTH 450
 #define WINDOW_HEIGHT 450
@@ -33,6 +35,7 @@ void initialize_simulation(int num_bodies) {
     float center_y = WINDOW_HEIGHT / 2.0f;
     float max_radius = fminf(WINDOW_WIDTH, WINDOW_HEIGHT) * 0.4f;
 
+    #pragma omp parallel for schedule(dynamic)
     for (int i = 0; i < num_bodies; i++) {
         float angle = ((float)rand() / RAND_MAX) * 2.0f * M_PI;
         float distance = ((float)rand() / RAND_MAX) * max_radius;
@@ -126,7 +129,9 @@ void render(int num_bodies) {
     SDL_Flip(screen);
 }
 
-int main(void) {
+int main(void){
+omp_set_num_threads(12);  // Use exactly 12 threads
+
     int a = 1000;
     int b = 500;
     int c = 100;
