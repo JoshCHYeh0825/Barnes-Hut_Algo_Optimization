@@ -44,7 +44,7 @@ typedef struct {
 Quad quad_new_containing(Body* bodies, int count);
 
 // Find which quadrant a position falls into (0-3)
-unsigned int quad_find_quadrant(Quad* quad, Vec2 pos);
+unsigned int quad_find_quadrant(Vec2 center, Vec2 pos);
 
 // Convert a quadrant into a subquadrant
 Quad quad_into_quadrant(Quad quad, unsigned int quadrant);
@@ -53,7 +53,7 @@ Quad quad_into_quadrant(Quad quad, unsigned int quadrant);
 void quad_subdivide(Quad* quad, Quad* subquads);
 
 // Create a new node
-Node node_new(unsigned int next, Quad quad);
+Node node_new(void);
 
 // Check if a node is a leaf (has no children)
 int node_is_leaf(Node* node);

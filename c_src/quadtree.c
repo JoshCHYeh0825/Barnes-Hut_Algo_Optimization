@@ -193,7 +193,7 @@ void quadtree_insert(Quadtree* qt, Vec2 pos, float mass) {
     
     // Otherwise, subdivide until we can separate them
     while (1) {
-        unsigned int children = quadtree_subdivide(qt, node);
+        quadtree_subdivide(qt, node);
         
         unsigned int q1 = quad_find_quadrant(qt->nodes[node].pos, p);
         unsigned int q2 = quad_find_quadrant(qt->nodes[node].pos, pos);
@@ -209,6 +209,7 @@ void quadtree_insert(Quadtree* qt, Vec2 pos, float mass) {
             qt->nodes[n2].pos = pos;
             qt->nodes[n2].mass = mass;
             
+            return;
         }
     }
 }

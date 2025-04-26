@@ -6,6 +6,7 @@
 #include <time.h>
 #include "body.h"
 #include "quadtree.h"
+#include <limits.h>
 #include <omp.h>
 
 #define WINDOW_WIDTH 450
