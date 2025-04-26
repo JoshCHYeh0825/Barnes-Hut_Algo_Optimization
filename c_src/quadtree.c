@@ -3,6 +3,7 @@
 #include <math.h>
 #include <float.h>
 #include <string.h>
+#include <limits.h>
 #include <omp.h>
 
 #define ROOT 0
@@ -30,8 +31,8 @@ Quad quad_new_containing(Body* bodies, int count) {
 }
 
 // Find which quadrant a position falls into (0-3)
-unsigned int quad_find_quadrant(Quad* quad, Vec2 pos) {
-    return ((pos.y > quad->center.y) << 1) | (pos.x > quad->center.x);
+unsigned int quad_find_quadrant(/* Quad* quad */ Vec2 center, Vec2 pos) {
+    return ((pos.y > center.y) << 1) | (pos.x > center.x);
 }
 
 // Convert a quadrant into a subquadrant
@@ -50,7 +51,7 @@ void quad_subdivide(Quad* quad, Quad* subquads) {
 }
 
 // Create a new node
-Node node_new(unsigned int next, Quad quad) {
+/* Node node_new(unsigned int next, Quad quad) {
     Node node;
     node.children = 0;
     node.next = next;
@@ -59,10 +60,22 @@ Node node_new(unsigned int next, Quad quad) {
     node.quad = quad;
     return node;
 }
+    */
+   Node node_new(void) {
+    Node node;
+    for (int i = 0; i < 4; i++) node.children[i] = UINT_MAX;
+    node.pos = vec2_zero();
+    node.mass = 0.0f;
+    node.size = 0.0f;
+    return node;
+}
 
 // Check if a node is a leaf (has no children)
 int node_is_leaf(Node* node) {
-    return node->children == 0;
+    return (node->children[0] == UINT_MAX &&
+            node->children[1] == UINT_MAX &&
+            node->children[2] == UINT_MAX &&
+            node->children[3] == UINT_MAX);
 }
 
 // Check if a node is a branch (has children)
@@ -92,7 +105,10 @@ Quadtree* quadtree_new(float theta, float epsilon) {
 void quadtree_clear(Quadtree* qt, Quad quad) {
     qt->node_count = 1;
     qt->parent_count = 0;
-    qt->nodes[ROOT] = node_new(0, quad);
+    // qt->nodes[ROOT] = node_new(0, quad);
+    qt->nodes[ROOT] = node_new();
+    qt->nodes[ROOT].pos = quad.center;
+    qt->nodes[ROOT].size = quad.size;
 }
 
 // Ensure the quadtree has enough capacity
@@ -115,9 +131,13 @@ unsigned int quadtree_subdivide(Quadtree* qt, unsigned int node_index) {
     // Record this as a parent
     qt->parents[qt->parent_count++] = node_index;
     
-    unsigned int children = qt->node_count;
-    qt->nodes[node_index].children = children;
-    
+    // unsigned int children = qt->node_count;
+    // qt->nodes[node_index].children = children;
+    // qt->parents[qt->parent_count++] = node_index;
+    Node* parent = &qt->nodes[node_index];
+    float half_size = parent->size * 0.5f;
+
+    /*
     unsigned int nexts[4] = {
         children + 1,
         children + 2,
@@ -131,19 +151,31 @@ unsigned int quadtree_subdivide(Quadtree* qt, unsigned int node_index) {
     for (int i = 0; i < 4; i++) {
         qt->nodes[qt->node_count++] = node_new(nexts[i], quads[i]);
     }
-    
-    return children;
+    */
+
+    for (int i = 0; i < 4; i++) {
+        Node child = node_new();
+        child.size = half_size;
+        // Position center adjustment based on quadrant
+        child.pos.x = parent->pos.x + ((i & 1) ? 0.5f : -0.5f) * half_size;
+        child.pos.y = parent->pos.y + ((i >> 1) ? 0.5f : -0.5f) * half_size;
+
+        parent->children[i] = qt->node_count;
+        qt->nodes[qt->node_count++] = child;
+    }
+
+    return node_index;
 }
 
 // Insert a position and mass into the quadtree
 void quadtree_insert(Quadtree* qt, Vec2 pos, float mass) {
     unsigned int node = ROOT;
     
-    while (node_is_branch(&qt->nodes[node])) {
-        unsigned int quadrant = quad_find_quadrant(&qt->nodes[node].quad, pos);
-        node = qt->nodes[node].children + quadrant;
+    while (/* node_is_branch */ !node_is_leaf(&qt->nodes[node])) {
+        unsigned int quadrant = quad_find_quadrant(qt->nodes[node].pos, pos);
+        node = qt->nodes[node].children[quadrant];
     }
-    
+
     if (node_is_empty(&qt->nodes[node])) {
         qt->nodes[node].pos = pos;
         qt->nodes[node].mass = mass;
@@ -163,20 +195,20 @@ void quadtree_insert(Quadtree* qt, Vec2 pos, float mass) {
     while (1) {
         unsigned int children = quadtree_subdivide(qt, node);
         
-        unsigned int q1 = quad_find_quadrant(&qt->nodes[node].quad, p);
-        unsigned int q2 = quad_find_quadrant(&qt->nodes[node].quad, pos);
+        unsigned int q1 = quad_find_quadrant(qt->nodes[node].pos, p);
+        unsigned int q2 = quad_find_quadrant(qt->nodes[node].pos, pos);
         
         if (q1 == q2) {
-            node = children + q1;
+            node = qt->nodes[node].children[q1];
         } else {
-            unsigned int n1 = children + q1;
-            unsigned int n2 = children + q2;
+            unsigned int n1 = qt->nodes[node].children[q1];
+            unsigned int n2 = qt->nodes[node].children[q2];
             
             qt->nodes[n1].pos = p;
             qt->nodes[n1].mass = m;
             qt->nodes[n2].pos = pos;
             qt->nodes[n2].mass = mass;
-            return;
+            
         }
     }
 }
@@ -185,11 +217,12 @@ void quadtree_insert(Quadtree* qt, Vec2 pos, float mass) {
 // Changed to loop unrolling
 //Trying OpenMP
 void quadtree_propagate(Quadtree* qt) {
+
     #pragma omp parallel for
     for (int i = qt->parent_count - 1; i >= 0; i--) {
         unsigned int node = qt->parents[i];
-        unsigned int children = qt->nodes[node].children;
-        
+        Node* parent = &qt->nodes[node];
+                
         // Declared these new floats
         float total_mass = 0.0f;
         float com_x = 0.0f;
@@ -208,9 +241,12 @@ void quadtree_propagate(Quadtree* qt) {
         }
         */
 
-           // Manual unrolling for 4 children
-           for (int j = 0; j < 4; j++) {
-            Node* child_node = &qt->nodes[children + j];
+        // Manual unrolling for 4 children
+        for (int j = 0; j < 4; j++) {
+            unsigned int child_idx = parent->children[j];
+            if (child_idx == UINT_MAX) continue;
+            Node* child_node = &qt->nodes[child_idx];
+        
             float mass = child_node->mass;
             total_mass += mass;
             com_x += child_node->pos.x * mass;
@@ -226,70 +262,54 @@ void quadtree_propagate(Quadtree* qt) {
 }
 
 // Calculate acceleration due to gravity at a position
-// Optimized memory and accumulators
+// Flattened flat tree
 Vec2 quadtree_acc(Quadtree* qt, Vec2 pos) {
-    // Vec2 acc = vec2_zero();
     float acc_x = 0.0f, acc_y = 0.0f;
-    unsigned int node = ROOT;
 
-    // Prefetch quadtree
-    __builtin_prefetch(&qt->nodes[node], 0, 1); 
-    while (node < qt->node_count) {
-        Node* n = &qt->nodes[node];
-        
-        // Skip nodes with no mass
-        // Include node = n->next into the condition
-        if (n->mass <= 0.0f) {
-            if (n->next == 0) break;
-            node = n->next;
-            continue;
+    unsigned int stack[256]; // fixed stack depth
+    int stack_size = 0;
+    stack[stack_size++] = ROOT;
+
+    while (stack_size > 0) {
+        unsigned int node_index = stack[--stack_size];
+        Node* n = &qt->nodes[node_index];
+
+        // Prefetch all children
+        #pragma omp simd
+        for (int j = 0; j < 4; j++) {
+            if (n->children[j] != UINT_MAX) {
+                __builtin_prefetch(&qt->nodes[n->children[j]], 0, 1);
+            }
         }
-        
+
         float dx = n->pos.x - pos.x;
         float dy = n->pos.y - pos.y;
         float d_sq = dx * dx + dy * dy;
 
-        // Vec2 d = vec2_sub(n->pos, pos);
-        // More efficient way to calculate magnitude squared
-        // float d_sq = d.x * d.x + d.y * d.y;
-        
-        // Skip self-node (prevent self-gravity)
-        // Include node = n->next into the condition
-        if (d_sq < 0.0001f) {
-            if (n->next == 0) break;
-            node = n->next;
+        if (n->mass <= 0.0f || d_sq < 0.0001f) {
             continue;
         }
-        
-        if (node_is_leaf(n) || (n->quad.size * n->quad.size < d_sq * qt->t_sq)) {
-            // Use approximation if far enough or a leaf
+
+        if (node_is_leaf(n) || (n->size * n->size < d_sq * qt->t_sq)) {
             float denom = powf(d_sq + qt->e_sq, 1.5f);
             if (denom > 0.0f) {
-                /*
-                float force = n->mass / denom;
-                acc = vec2_add(acc, vec2_mul(d, force));
-                */
-
-                // Scalar float accumulators, replacing temporary vec2 structs
-                // OpenMP and SIMD looped the calculations
-                
-               float f = n->mass / denom;
-               acc_x += dx * f;
-               acc_y += dy * f;
-               // replaces acc to stop vec2 function calls
-           }
-            
-            // Move to next node at same level
-            if (n->next == 0) break;
-            node = n->next;
+                float f = n->mass / denom;
+                acc_x += dx * f;
+                acc_y += dy * f;
+            }
         } else {
-            // Descend into children if too close
-            node = n->children;
+            // Add all non-null children
+            for (int i = 0; i < 4; i++) {
+                if (n->children[i] != UINT_MAX) {
+                    stack[stack_size++] = n->children[i];
+                }
+            }
         }
     }
-    
-    return /* acc */ vec2_new(acc_x, acc_y);
+
+    return vec2_new(acc_x, acc_y);
 }
+
 
 // Free the quadtree
 void quadtree_free(Quadtree* qt) {

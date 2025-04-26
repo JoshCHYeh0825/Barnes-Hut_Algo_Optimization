@@ -87,8 +87,12 @@ void update_simulation(float dt, int num_bodies) {
     // Parallelize quadtree function call
     #pragma omp parallel for schedule(dynamic)
     for (int i = 0; i < num_bodies; i++) {
-        Vec2 acc_i = quadtree_acc(quadtree, bodies[i].pos);
-        bodies[i].acc = vec2_mul(acc_i, G);
+        // In tree structure
+        // Vec2 acc_i = quadtree_acc(quadtree, bodies[i].pos);
+        // bodies[i].acc = vec2_mul(acc_i, G);
+
+        // Array flattened structure:
+        bodies[i].acc = vec2_mul(quadtree_acc(quadtree, bodies[i].pos), G);
     }
     
 
