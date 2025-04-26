@@ -6,6 +6,7 @@
 #include <time.h>
 #include "body.h"
 #include "quadtree.h"
+#include <omp.h>
 
 #define WINDOW_WIDTH 450
 #define WINDOW_HEIGHT 450
@@ -83,10 +84,15 @@ void update_simulation(float dt, int num_bodies) {
         quadtree_insert(quadtree, bodies[i].pos, bodies[i].mass);
     quadtree_propagate(quadtree);
 
+    // Parallelize quadtree function call
+    #pragma omp parallel for schedule(dynamic)
     for (int i = 0; i < num_bodies; i++) {
-        bodies[i].acc = vec2_mul(quadtree_acc(quadtree, bodies[i].pos), G);
+        Vec2 acc_i = quadtree_acc(quadtree, bodies[i].pos);
+        bodies[i].acc = vec2_mul(acc_i, G);
     }
+    
 
+    #pragma omp parallel for schedule(dynamic)
     for (int i = 0; i < num_bodies; i++) {
         bodies[i].vel = vec2_add(bodies[i].vel, vec2_mul(bodies[i].acc, dt * 0.5f));
         bodies[i].pos = vec2_add(bodies[i].pos, vec2_mul(bodies[i].vel, dt));
@@ -127,6 +133,7 @@ void render(int num_bodies) {
 }
 
 int main(void) {
+    omp_set_num_threads(8);  // Use exactly 8 threads
     int a = 1000;
     int b = 500;
     int c = 100;

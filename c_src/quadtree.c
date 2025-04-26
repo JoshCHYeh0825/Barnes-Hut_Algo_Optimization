@@ -226,12 +226,14 @@ void quadtree_propagate(Quadtree* qt) {
 }
 
 // Calculate acceleration due to gravity at a position
-// Optiumized memory and accumulators
+// Optimized memory and accumulators
 Vec2 quadtree_acc(Quadtree* qt, Vec2 pos) {
     // Vec2 acc = vec2_zero();
     float acc_x = 0.0f, acc_y = 0.0f;
     unsigned int node = ROOT;
-    
+
+    // Prefetch quadtree
+    __builtin_prefetch(&qt->nodes[node], 0, 1); 
     while (node < qt->node_count) {
         Node* n = &qt->nodes[node];
         
@@ -267,6 +269,10 @@ Vec2 quadtree_acc(Quadtree* qt, Vec2 pos) {
                 float force = n->mass / denom;
                 acc = vec2_add(acc, vec2_mul(d, force));
                 */
+
+                // Scalar float accumulators, replacing temporary vec2 structs
+                // OpenMP and SIMD looped the calculations
+                
                float f = n->mass / denom;
                acc_x += dx * f;
                acc_y += dy * f;
