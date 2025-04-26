@@ -1,6 +1,5 @@
 #include "vec2.h"
 #include <math.h>
-#include <cuda_runtime.h>
 
 __host__ __device__ Vec2 vec2_zero(void) {
     return (Vec2){0.0f, 0.0f};
@@ -26,8 +25,8 @@ __host__ __device__ float vec2_mag(Vec2 v) {
     return sqrtf(v.x * v.x + v.y * v.y);
 }
 
-Vec2 vec2_normalize(Vec2 v) {
+__host__ __device__ Vec2 vec2_normalize(Vec2 v) {
     float mag = vec2_mag(v);
     if (mag == 0.0f) return vec2_zero();
     return vec2_mul(v, 1.0f / mag);
-} 
+}
