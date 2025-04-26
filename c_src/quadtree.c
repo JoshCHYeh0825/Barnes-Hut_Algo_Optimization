@@ -1,4 +1,4 @@
-#include "quadtree_tree.h"
+#include "quadtree.h"
 #include <stdlib.h>
 #include <math.h>
 #include <float.h>
