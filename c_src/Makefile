@@ -1,5 +1,5 @@
 # Name of final executable
-TARGET = barnes_hut_sim
+TARGET = barnes_hut
 
 # Compiler settings
 CC = gcc
