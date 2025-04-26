@@ -140,7 +140,7 @@ void render(int num_bodies) {
 }
 
 int main(void) {
-    omp_set_num_threads(12);  // Use exactly 8 threads
+    omp_set_num_threads(12);  // Use exactly 12 threads
     int a = 1000;
     int b = 500;
     int c = 100;
