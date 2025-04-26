@@ -14,4 +14,4 @@ Vec2 vec2_mul(Vec2 v, float s);
 float vec2_mag(Vec2 v);
 Vec2 vec2_normalize(Vec2 v);
 
-#endif // VEC2_H 
+#endif // VEC2_H
