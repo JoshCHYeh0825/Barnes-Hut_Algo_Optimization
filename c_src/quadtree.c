@@ -193,6 +193,10 @@ void quadtree_insert(Quadtree* qt, Vec2 pos, float mass) {
     
     // Otherwise, subdivide until we can separate them
     while (1) {
+        if (qt->nodes[node].size < 1e-6f) {  // Safeguard against infinite subdivisions
+            qt->nodes[node].mass += mass;
+            return;
+        }        
         quadtree_subdivide(qt, node);
         
         unsigned int q1 = quad_find_quadrant(qt->nodes[node].pos, p);

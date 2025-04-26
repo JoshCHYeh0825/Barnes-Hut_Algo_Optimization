@@ -35,6 +35,7 @@ void initialize_simulation(int num_bodies) {
     float center_y = WINDOW_HEIGHT / 2.0f;
     float max_radius = fminf(WINDOW_WIDTH, WINDOW_HEIGHT) * 0.4f;
 
+    #pragma omp parallel for schedule(dynamic)
     for (int i = 0; i < num_bodies; i++) {
         float angle = ((float)rand() / RAND_MAX) * 2.0f * M_PI;
         float distance = ((float)rand() / RAND_MAX) * max_radius;
@@ -110,6 +111,7 @@ void update_simulation(float dt, int num_bodies) {
         quadtree_insert(quadtree, bodies[i].pos, bodies[i].mass);
     quadtree_propagate(quadtree);
 
+    #pragma omp parallel for schedule(dynamic)
     for (int i = 0; i < num_bodies; i++) {
         Vec2 new_acc = vec2_mul(quadtree_acc(quadtree, bodies[i].pos), G);
         bodies[i].vel = vec2_add(bodies[i].vel, vec2_mul(new_acc, dt * 0.5f));
@@ -138,7 +140,7 @@ void render(int num_bodies) {
 }
 
 int main(void) {
-    omp_set_num_threads(10);  // Use exactly 8 threads
+    omp_set_num_threads(12);  // Use exactly 8 threads
     int a = 1000;
     int b = 500;
     int c = 100;
