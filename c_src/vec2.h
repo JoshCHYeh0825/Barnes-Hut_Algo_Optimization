@@ -1,10 +1,13 @@
 #include <xmmintrin.h>
 #include <smmintrin.h>
 #include <immintrin.h>
-#include <cuda_runtime.h>
 
 #ifndef VEC2_H
 #define VEC2_H
+
+#ifdef __CUDACC__
+#include <cuda_runtime.h>
+#endif
 
 typedef struct {
     float x;
