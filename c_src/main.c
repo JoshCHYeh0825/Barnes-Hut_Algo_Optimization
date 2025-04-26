@@ -32,6 +32,7 @@ Quadtree* d_quadtree = NULL;
 void initialize_simulation(int num_bodies);
 void update_simulation(float dt, int num_bodies);
 void cleanup_simulation(void);
+void update_simulation_gpu(Body* d_bodies, Quadtree* d_quadtree, int num_bodies, float dt, float G);
 
 void initialize_simulation(int num_bodies) {
     srand((unsigned int)time(NULL));
@@ -60,8 +61,8 @@ void initialize_simulation(int num_bodies) {
 
     quadtree = quadtree_new(THETA, EPSILON);
 
-    cudaMalloc(&d_bodies, num_bodies * sizeof(Body));
-    cudaMalloc(&d_quadtree, sizeof(Quadtree));
+    cudaMalloc((void**)&d_bodies, num_bodies * sizeof(Body));
+    cudaMalloc((void**)&d_quadtree, sizeof(Quadtree));
     cudaMemcpy(d_quadtree, quadtree, sizeof(Quadtree), cudaMemcpyHostToDevice);
 }
 

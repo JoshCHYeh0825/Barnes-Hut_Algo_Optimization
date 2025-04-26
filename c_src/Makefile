@@ -6,27 +6,26 @@ CFLAGS = -O3 -Xcompiler -fopenmp
 LIBS = -lSDL
 
 # Executable
-TARGET = barnes_hut_sim
-
-# Sources
-CPU_SRCS = main.c vec2.c body.c quadtree.c
-GPU_SRCS = barnes_hut_CUDA.cu
+TARGET = barnes_hut
 
 # Object files
-CPU_OBJS = $(CPU_SRCS:.c=.o)
-GPU_OBJS = $(GPU_SRCS:.cu=.o)
+OBJECTS = main.o body.o quadtree.o vec2.o vec2_CUDA.o barnes_hut_CUDA.o
 
 # Default target
 all: $(TARGET)
 
-$(TARGET): $(CPU_OBJS) $(GPU_OBJS)
+# Link the final executable
+$(TARGET): $(OBJECTS)
 	$(NVCC) $(CFLAGS) -o $@ $^ $(LIBS)
 
+# Compile .c files into .o files
 %.o: %.c
 	$(NVCC) $(CFLAGS) -c $< -o $@
 
+# Compile .cu files into .o files
 %.o: %.cu
 	$(NVCC) $(CFLAGS) -c $< -o $@
 
+# Clean rule
 clean:
-	rm -f $(CPU_OBJS) $(GPU_OBJS) $(TARGET)
+	rm -f $(OBJECTS) $(TARGET)

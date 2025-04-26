@@ -1,16 +1,15 @@
 #ifndef VEC2_H
 #define VEC2_H
 
-typedef struct {
-    float x;
-    float y;
-} Vec2;
-
 #ifdef __CUDACC__
-    #define HOST_DEVICE __host__ __device__
+#define HOST_DEVICE __host__ __device__
 #else
-    #define HOST_DEVICE
+#define HOST_DEVICE
 #endif
+
+typedef struct {
+    float x, y;
+} Vec2;
 
 HOST_DEVICE Vec2 vec2_zero(void);
 HOST_DEVICE Vec2 vec2_new(float x, float y);
