@@ -1,37 +1,32 @@
-# Name of final executable
-TARGET = barnes_hut
-
-# Compiler settings
-CC = gcc
+# Compiler
 NVCC = nvcc
-CFLAGS = -O3 -Wall -I. -fopenmp
-NVCCFLAGS = -O3 -I. -Xcompiler -fopenmp
-
-# List of source files
-CPU_SRCS = main.c body.c vec2.c quadtree.c
-CUDA_SRCS = barnes_hut_CUDA.cu
-
-# Object files
-OBJS = $(CPU_SRCS:.c=.o) $(CUDA_SRCS:.cu=.o)
+CFLAGS = -O3 -Xcompiler -fopenmp
 
 # Libraries
-LIBS = -lm -lSDL
+LIBS = -lSDL
 
-# Default rule
+# Executable
+TARGET = barnes_hut_sim
+
+# Sources
+CPU_SRCS = main.c vec2.c body.c quadtree.c
+GPU_SRCS = barnes_hut_CUDA.cu
+
+# Object files
+CPU_OBJS = $(CPU_SRCS:.c=.o)
+GPU_OBJS = $(GPU_SRCS:.cu=.o)
+
+# Default target
 all: $(TARGET)
 
-# Rule to build final executable
-$(TARGET): $(OBJS)
-	$(NVCC) $(NVCCFLAGS) -o $@ $(OBJS) $(LIBS)
+$(TARGET): $(CPU_OBJS) $(GPU_OBJS)
+	$(NVCC) $(CFLAGS) -o $@ $^ $(LIBS)
 
-# Rule for C files
 %.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+	$(NVCC) $(CFLAGS) -c $< -o $@
 
-# Rule for CUDA files
 %.o: %.cu
-	$(NVCC) $(NVCCFLAGS) -c $< -o $@
+	$(NVCC) $(CFLAGS) -c $< -o $@
 
-# Clean rule
 clean:
-	rm -f $(TARGET) $(OBJS)
+	rm -f $(CPU_OBJS) $(GPU_OBJS) $(TARGET)

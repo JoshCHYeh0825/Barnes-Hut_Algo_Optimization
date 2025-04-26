@@ -1,25 +1,23 @@
-#include <xmmintrin.h>
-#include <smmintrin.h>
-#include <immintrin.h>
-
 #ifndef VEC2_H
 #define VEC2_H
-
-#ifdef __CUDACC__
-#include <cuda_runtime.h>
-#endif
 
 typedef struct {
     float x;
     float y;
 } Vec2;
 
-__host__ __device__ Vec2 vec2_zero(void);
-__host__ __device__ Vec2 vec2_new(float x, float y);
-__host__ __device__ Vec2 vec2_add(Vec2 a, Vec2 b);
-__host__ __device__ Vec2 vec2_sub(Vec2 a, Vec2 b);
-__host__ __device__ Vec2 vec2_mul(Vec2 v, float s);
-__host__ __device__ float vec2_mag(Vec2 v);
-__host__ __device__ Vec2 vec2_normalize(Vec2 v);
+#ifdef __CUDACC__
+    #define HOST_DEVICE __host__ __device__
+#else
+    #define HOST_DEVICE
+#endif
 
-#endif // VEC2_H 
+HOST_DEVICE Vec2 vec2_zero(void);
+HOST_DEVICE Vec2 vec2_new(float x, float y);
+HOST_DEVICE Vec2 vec2_add(Vec2 a, Vec2 b);
+HOST_DEVICE Vec2 vec2_sub(Vec2 a, Vec2 b);
+HOST_DEVICE Vec2 vec2_mul(Vec2 v, float s);
+HOST_DEVICE float vec2_mag(Vec2 v);
+HOST_DEVICE Vec2 vec2_normalize(Vec2 v);
+
+#endif // VEC2_H

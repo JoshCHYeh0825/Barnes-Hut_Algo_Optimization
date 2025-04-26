@@ -7,6 +7,8 @@
 #include "body.h"
 #include "quadtree.h"
 
+#include <cuda_runtime.h>
+#include <device_launch_parameters.h>
 #include <limits.h>
 #include <omp.h>
 
@@ -23,6 +25,9 @@
 SDL_Surface* screen = NULL;
 Body* bodies = NULL;
 Quadtree* quadtree = NULL;
+
+Body* d_bodies = NULL;
+Quadtree* d_quadtree = NULL;
 
 void initialize_simulation(int num_bodies);
 void update_simulation(float dt, int num_bodies);
