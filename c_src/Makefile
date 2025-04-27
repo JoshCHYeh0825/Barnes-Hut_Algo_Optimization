@@ -8,12 +8,12 @@ LIBS = -lSDL
 # Executable
 TARGET = barnes_hut_sim
 
-CPU_OBJS = main.o body.o quadtree.o vec2_host.o
-GPU_OBJS = barnes_hut_CUDA.o vec2_CUDA.o
+# Objects to compile
+OBJECTS = main.o body.o quadtree.o vec2_host.o barnes_hut_CUDA.o
 
 all: $(TARGET)
 
-$(TARGET): $(CPU_OBJS) $(GPU_OBJS)
+$(TARGET): $(OBJECTS)
 	$(NVCC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 %.o: %.c
