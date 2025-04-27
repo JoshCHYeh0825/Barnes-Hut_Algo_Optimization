@@ -11,6 +11,7 @@ typedef struct {
     float x, y;
 } Vec2;
 
+// Declare functions
 HOST_DEVICE Vec2 vec2_zero(void);
 HOST_DEVICE Vec2 vec2_new(float x, float y);
 HOST_DEVICE Vec2 vec2_add(Vec2 a, Vec2 b);

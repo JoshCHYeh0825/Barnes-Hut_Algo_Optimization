@@ -57,9 +57,9 @@ __global__ void update_bodies_kernel(Body* bodies, Quadtree* quadtree, int num_b
     bodies[idx].pos = vec2_add(bodies[idx].pos, vec2_mul(bodies[idx].vel, dt));
 }
 
-void update_simulation_gpu(Body* d_bodies, Quadtree* d_quadtree, int num_bodies, float dt, float G) {
+void update_simulation_gpu(Body* d_bodies, Quadtree* d_quadtree, int num_bodies, float dt, float gravity) {
     int threadsPerBlock = 256;
     int blocksPerGrid = (num_bodies + threadsPerBlock - 1) / threadsPerBlock;
-    update_bodies_kernel<<<blocksPerGrid, threadsPerBlock>>>(d_bodies, d_quadtree, num_bodies, dt, G);
+    update_bodies_kernel<<<blocksPerGrid, threadsPerBlock>>>(d_bodies, d_quadtree, num_bodies, dt, gravity);
     cudaDeviceSynchronize();
 }

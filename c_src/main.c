@@ -29,10 +29,10 @@ Quadtree* quadtree = NULL;
 Body* d_bodies = NULL;
 Quadtree* d_quadtree = NULL;
 
+void update_simulation_gpu(Body* d_bodies, Quadtree* d_quadtree, int num_bodies, float dt, float gravity);
 void initialize_simulation(int num_bodies);
 void update_simulation(float dt, int num_bodies);
 void cleanup_simulation(void);
-void update_simulation_gpu(Body* d_bodies, Quadtree* d_quadtree, int num_bodies, float dt, float G);
 
 void initialize_simulation(int num_bodies) {
     srand((unsigned int)time(NULL));
