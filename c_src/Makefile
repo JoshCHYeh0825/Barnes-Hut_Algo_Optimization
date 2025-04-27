@@ -9,7 +9,7 @@ LIBS = -lSDL
 TARGET = barnes_hut_sim
 
 CPU_OBJS = main.o body.o quadtree.o vec2_host.o
-GPU_OBJS = barnes_hut_CUDA.o vec2_device.o
+GPU_OBJS = barnes_hut_CUDA.o vec2_CUDA.o
 
 all: $(TARGET)
 
