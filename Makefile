@@ -1,6 +1,6 @@
 CC = gcc
 
-CFLAGS = -Wall -Wextra -O0 `sdl-config --cflags`
+CFLAGS = -Wall -Wextra -O3 -ffast-math `sdl-config --cflags`
 LDFLAGS = `sdl-config --libs` -lm
 
 SRCS = vec2.c body.c quadtree.c
