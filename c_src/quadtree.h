@@ -80,7 +80,7 @@ void quadtree_insert(Quadtree* qt, Vec2 pos, float mass);
 void quadtree_propagate(Quadtree* qt);
 
 // Calculate acceleration due to gravity at a position
-Vec2 quadtree_acc(Quadtree* qt, Vec2 pos);
+// Vec2 quadtree_acc(Quadtree* qt, Vec2 pos);
 
 // Free the quadtree
 void quadtree_free(Quadtree* qt);

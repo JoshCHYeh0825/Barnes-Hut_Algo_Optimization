@@ -6,7 +6,7 @@ CFLAGS = -O3 -Xcompiler -fopenmp
 LIBS = -lSDL
 
 # Executable
-TARGET = barnes_hut_sim
+TARGET = barnes_hut
 
 # Objects to compile
 OBJECTS = main.o body.o quadtree.o vec2_host.o barnes_hut_CUDA.o

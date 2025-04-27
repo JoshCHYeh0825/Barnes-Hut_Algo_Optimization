@@ -8,7 +8,7 @@
 
 extern "C" {
 
-__device__ Vec2 quadtree_acc(Quadtree* qt, Vec2 pos) {
+__device__ Vec2 quadtree_acc_GPU(Quadtree* qt, Vec2 pos) {
     float acc_x = 0.0f, acc_y = 0.0f;
 
     unsigned int stack[16384]; // fixed stack depth
@@ -53,7 +53,7 @@ __global__ void update_bodies_kernel(Body* bodies, Quadtree* quadtree, int num_b
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= num_bodies) return;
 
-    Vec2 acc = quadtree_acc(quadtree, bodies[idx].pos);
+    Vec2 acc = quadtree_acc_GPU(quadtree, bodies[idx].pos);
     bodies[idx].acc = vec2_mul(acc, G);
 
     bodies[idx].vel = vec2_add(bodies[idx].vel, vec2_mul(bodies[idx].acc, dt * 0.5f));
