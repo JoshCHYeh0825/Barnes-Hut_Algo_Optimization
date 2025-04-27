@@ -1,6 +1,7 @@
 #include "vec2.h"
 #include "body.h"
 #include "quadtree.h"
+#include "vec2_device.cu"
 
 #include <cuda_runtime.h>
 #include <math.h>
