@@ -28,6 +28,7 @@ Quadtree* quadtree = NULL;
 
 Body* d_bodies = NULL;
 Quadtree* d_quadtree = NULL;
+Node* d_nodes = NULL; // <- device nodes array
 
 void update_simulation_gpu(Body* d_bodies, Quadtree* d_quadtree, int num_bodies, float dt, float gravity);
 void initialize_simulation(int num_bodies);
@@ -63,7 +64,7 @@ void initialize_simulation(int num_bodies) {
 
     cudaMalloc((void**)&d_bodies, num_bodies * sizeof(Body));
     cudaMalloc((void**)&d_quadtree, sizeof(Quadtree));
-    cudaMemcpy(d_quadtree, quadtree, sizeof(Quadtree), cudaMemcpyHostToDevice);
+    cudaMalloc((void**)&d_nodes, quadtree->capacity * sizeof(Node));
 }
 
 void handle_wall_collisions(Body* body) {
@@ -97,7 +98,14 @@ void update_simulation(float dt, int num_bodies) {
     quadtree_propagate(quadtree);
 
     cudaMemcpy(d_bodies, bodies, num_bodies * sizeof(Body), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_quadtree, quadtree, sizeof(Quadtree), cudaMemcpyHostToDevice);
+
+    // 💥 Deep Copy the quadtree
+    cudaMemcpy(d_nodes, quadtree->nodes, quadtree->capacity * sizeof(Node), cudaMemcpyHostToDevice);
+
+    Quadtree temp = *quadtree;
+    temp.nodes = d_nodes;
+    cudaMemcpy(d_quadtree, &temp, sizeof(Quadtree), cudaMemcpyHostToDevice);
+    // ✅ Now the device quadtree points to device memory!
 
     update_simulation_gpu(d_bodies, d_quadtree, num_bodies, dt, G);
 
@@ -109,6 +117,7 @@ void cleanup_simulation(void) {
     quadtree_free(quadtree);
     cudaFree(d_bodies);
     cudaFree(d_quadtree);
+    cudaFree(d_nodes);
 }
 
 void render(int num_bodies) {
@@ -127,7 +136,7 @@ void render(int num_bodies) {
 }
 
 int main(void) {
-    omp_set_num_threads(12);  // Use exactly 12 threads
+    omp_set_num_threads(12);
     int a = 1000;
     int b = 500;
     int c = 100;
@@ -139,7 +148,6 @@ int main(void) {
     int num_iterations_log[NUM_TRIALS];
 
     for (i = 0; i < NUM_TRIALS; i++) {
-
         num_bodies = a*i*i + b*i + c;
         printf("num_bodies: %d\n", num_bodies);
 
