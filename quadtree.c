@@ -182,35 +182,55 @@ void quadtree_propagate(Quadtree *qt) {
         unsigned int node = qt->parents[i];
         unsigned int children = qt->nodes[node].children;
 
-        Vec2 com = vec2_zero();
+        // Using scalar accumulators instead of vector operations
         float total_mass = 0.0f;
+        float com_x = 0.0f;
+        float com_y = 0.0f;
 
-        for (int j = 0; j < 4; j++) {
-            unsigned int child = children + j;
-            float child_mass = qt->nodes[child].mass;
+        // Manual loop unrolling for 4 children
+        unsigned int child0 = children + 0;
+        unsigned int child1 = children + 1;
+        unsigned int child2 = children + 2;
+        unsigned int child3 = children + 3;
 
-            com = vec2_add(com, vec2_mul(qt->nodes[child].pos, child_mass));
-            total_mass += child_mass;
-        }
+        float mass0 = qt->nodes[child0].mass;
+        float mass1 = qt->nodes[child1].mass;
+        float mass2 = qt->nodes[child2].mass;
+        float mass3 = qt->nodes[child3].mass;
+
+        total_mass = mass0 + mass1 + mass2 + mass3;
+
+        com_x = qt->nodes[child0].pos.x * mass0 + qt->nodes[child1].pos.x * mass1 + qt->nodes[child2].pos.x * mass2 +
+                qt->nodes[child3].pos.x * mass3;
+
+        com_y = qt->nodes[child0].pos.y * mass0 + qt->nodes[child1].pos.y * mass1 + qt->nodes[child2].pos.y * mass2 +
+                qt->nodes[child3].pos.y * mass3;
 
         qt->nodes[node].mass = total_mass;
-        if (total_mass > 0) {
-            qt->nodes[node].pos = vec2_mul(com, 1.0f / total_mass);
+        if (total_mass > 0.0f) {
+            qt->nodes[node].pos.x = com_x / total_mass;
+            qt->nodes[node].pos.y = com_y / total_mass;
         }
     }
 }
 
-// can optimize this - basic compiler optimizations
 // Calculate acceleration due to gravity at a position
 Vec2 quadtree_acc(Quadtree *qt, Vec2 pos) {
-    Vec2 acc = vec2_zero();
+    // Use scalar accumulators instead of Vec2
+    float acc_x = 0.0f;
+    float acc_y = 0.0f;
     unsigned int node = ROOT;
 
-    // multithread?
-    // go down linked list, for each node (node is int index in nodes array)
-    // put on one thread and run with OpenMP
+    // Add prefetching for the root node
+    __builtin_prefetch(&qt->nodes[node], 0, 1);
+
     while (node < qt->node_count) {
         Node *n = &qt->nodes[node];
+
+        // Prefetch the next node to improve cache utilization
+        if (n->next > 0) {
+            __builtin_prefetch(&qt->nodes[n->next], 0, 1);
+        }
 
         // Skip nodes with no mass
         if (n->mass <= 0.0f) {
@@ -221,9 +241,10 @@ Vec2 quadtree_acc(Quadtree *qt, Vec2 pos) {
             continue;
         }
 
-        Vec2 d = vec2_sub(n->pos, pos);
-        // More efficient way to calculate magnitude squared
-        float d_sq = d.x * d.x + d.y * d.y;
+        // Calculate difference directly without intermediate Vec2
+        float dx = n->pos.x - pos.x;
+        float dy = n->pos.y - pos.y;
+        float d_sq = dx * dx + dy * dy;
 
         // Skip self-node (prevent self-gravity)
         if (d_sq < 0.0001f) {
@@ -236,11 +257,12 @@ Vec2 quadtree_acc(Quadtree *qt, Vec2 pos) {
 
         if (node_is_leaf(n) || (n->quad.size * n->quad.size < d_sq * qt->t_sq)) {
             // Use approximation if far enough or a leaf
-            // Use alternative to powf? lower accuracy though
             float denom = powf(d_sq + qt->e_sq, 1.5f);
-            if (denom > 0) {
-                float force = n->mass / denom;
-                acc = vec2_add(acc, vec2_mul(d, force));
+            if (denom > 0.0f) {
+                // Directly compute acceleration components
+                float f = n->mass / denom;
+                acc_x += dx * f;
+                acc_y += dy * f;
             }
 
             // Move to next node at same level
@@ -251,10 +273,13 @@ Vec2 quadtree_acc(Quadtree *qt, Vec2 pos) {
         } else {
             // Descend into children if too close
             node = n->children;
+            // Prefetch the first child
+            __builtin_prefetch(&qt->nodes[n->children], 0, 1);
         }
     }
 
-    return acc;
+    // Convert accumulators back to Vec2 for return
+    return vec2_new(acc_x, acc_y);
 }
 
 // Free the quadtree
