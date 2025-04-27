@@ -1,6 +1,7 @@
 #include "body.h"
 #include "quadtree.h"
-#include <SDL2/SDL.h>
+#include <SDL/SDL.h>
+#include <limits.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -17,8 +18,7 @@
 #define MAX_VELOCITY 1.0f
 #define TIME_SCALE 1.0f
 
-SDL_Window *window = NULL;
-SDL_Renderer *renderer = NULL;
+SDL_Surface *screen = NULL;
 Body *bodies = NULL;
 Quadtree *quadtree = NULL;
 
@@ -54,7 +54,6 @@ void initialize_simulation(int num_bodies) {
     quadtree = quadtree_new(THETA, EPSILON);
 }
 
-// pretty straightforward already
 void handle_wall_collisions(Body *body) {
     float damping = 0.8f;
 
@@ -75,7 +74,6 @@ void handle_wall_collisions(Body *body) {
     }
 }
 
-// can optimize anything in this function
 void update_simulation(float dt, int num_bodies) {
     dt *= TIME_SCALE;
 
@@ -86,7 +84,6 @@ void update_simulation(float dt, int num_bodies) {
         quadtree_insert(quadtree, bodies[i].pos, bodies[i].mass);
     quadtree_propagate(quadtree);
 
-    // can optimize this - multithreading / gpu
     for (int i = 0; i < num_bodies; i++) {
         bodies[i].acc = vec2_mul(quadtree_acc(quadtree, bodies[i].pos), G);
     }
@@ -103,7 +100,6 @@ void update_simulation(float dt, int num_bodies) {
         quadtree_insert(quadtree, bodies[i].pos, bodies[i].mass);
     quadtree_propagate(quadtree);
 
-    // can optimize this - multithreading / gpu
     for (int i = 0; i < num_bodies; i++) {
         Vec2 new_acc = vec2_mul(quadtree_acc(quadtree, bodies[i].pos), G);
         bodies[i].vel = vec2_add(bodies[i].vel, vec2_mul(new_acc, dt * 0.5f));
@@ -117,19 +113,21 @@ void cleanup_simulation(void) {
 }
 
 void render(int num_bodies) {
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-    SDL_RenderClear(renderer);
+    SDL_FillRect(screen, NULL, SDL_MapRGB(screen->format, 0, 0, 0));
+    Uint32 white = SDL_MapRGB(screen->format, 255, 255, 255);
+    SDL_Rect rect;
 
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
     for (int i = 0; i < num_bodies; i++) {
-        SDL_FRect rect = {bodies[i].pos.x - bodies[i].radius, bodies[i].pos.y - bodies[i].radius,
-                          bodies[i].radius * 2.0f, bodies[i].radius * 2.0f};
-        SDL_RenderFillRectF(renderer, &rect);
+        rect.x = (int)(bodies[i].pos.x - bodies[i].radius);
+        rect.y = (int)(bodies[i].pos.y - bodies[i].radius);
+        rect.w = (int)(bodies[i].radius * 2);
+        rect.h = (int)(bodies[i].radius * 2);
+        SDL_FillRect(screen, &rect, white);
     }
-    SDL_RenderPresent(renderer);
+    SDL_Flip(screen);
 }
 
-int main(int argc, char *argv[]) {
+int main(void) {
 
     int a = 1000;
     int b = 500;
@@ -138,7 +136,6 @@ int main(int argc, char *argv[]) {
     int num_bodies = 0;
     int i = 0;
 
-    // logging
     int num_bodies_log[NUM_TRIALS];
     int num_iterations_log[NUM_TRIALS];
 
@@ -154,18 +151,20 @@ int main(int argc, char *argv[]) {
             return 1;
         }
 
-        window = SDL_CreateWindow("Barnes-Hut Simulation", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, WINDOW_WIDTH,
-                                  WINDOW_HEIGHT, 0);
-        renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+        screen = SDL_SetVideoMode(WINDOW_WIDTH, WINDOW_HEIGHT, 32, SDL_SWSURFACE);
+        if (!screen) {
+            fprintf(stderr, "SDL_SetVideoMode Error: %s\n", SDL_GetError());
+            SDL_Quit();
+            return 1;
+        }
 
         initialize_simulation(num_bodies);
 
         Uint32 last_time = SDL_GetTicks();
-
-        // optimize here!!!!
         Uint32 start = SDL_GetTicks();
         int iterations = 0;
         bool running = true;
+
         while (running) {
             SDL_Event e;
             while (SDL_PollEvent(&e)) {
@@ -186,21 +185,15 @@ int main(int argc, char *argv[]) {
 
             iterations++;
 
-            // if its been 10 seconds, exit
             if (current_time - start > 10000) {
                 running = false;
             }
         }
 
         cleanup_simulation();
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
         SDL_Quit();
 
-        // print the average iterations per second
         printf("Average iterations per second: %f\n", (float)iterations / 10.0f);
-
-        // update logging
         num_bodies_log[i] = num_bodies;
         num_iterations_log[i] = iterations;
     }
