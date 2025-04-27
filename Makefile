@@ -1,6 +1,8 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -O2 -I/opt/homebrew/include
-LDFLAGS = -L/opt/homebrew/lib -lSDL2 -lm
+
+CFLAGS = -Wall -Wextra -O0 `sdl-config --cflags`
+LDFLAGS = `sdl-config --libs` -lm
+
 SRCS = vec2.c body.c quadtree.c
 OBJS = $(SRCS:.c=.o)
 MAIN_OBJ = main.o
