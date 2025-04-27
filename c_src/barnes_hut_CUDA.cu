@@ -1,10 +1,12 @@
 #include "vec2.h"
 #include "body.h"
 #include "quadtree.h"
-#include "vec2_device.cu"
+#include "vec2_CUDA.cu"
 
 #include <cuda_runtime.h>
 #include <math.h>
+
+extern "C" {
 
 __device__ Vec2 quadtree_acc(Quadtree* qt, Vec2 pos) {
     float acc_x = 0.0f, acc_y = 0.0f;
@@ -63,4 +65,6 @@ void update_simulation_gpu(Body* d_bodies, Quadtree* d_quadtree, int num_bodies,
     int blocksPerGrid = (num_bodies + threadsPerBlock - 1) / threadsPerBlock;
     update_bodies_kernel<<<blocksPerGrid, threadsPerBlock>>>(d_bodies, d_quadtree, num_bodies, dt, gravity);
     cudaDeviceSynchronize();
+}
+
 }
