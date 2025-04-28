@@ -8,5 +8,4 @@ Body body_new(Vec2 pos, Vec2 vel, float mass, float radius) {
 void body_update(Body *body, float dt) {
     body->vel = vec2_add(body->vel, vec2_mul(body->acc, dt));
     body->pos = vec2_add(body->pos, vec2_mul(body->vel, dt));
-    printf("Hello World");
 }
