@@ -1,6 +1,6 @@
-#include <xmmintrin.h>
-#include <smmintrin.h>
 #include <immintrin.h>
+#include <smmintrin.h>
+#include <xmmintrin.h>
 
 #ifndef VEC2_H
 #define VEC2_H
@@ -18,4 +18,4 @@ Vec2 vec2_mul(Vec2 v, float s);
 float vec2_mag(Vec2 v);
 Vec2 vec2_normalize(Vec2 v);
 
-#endif // VEC2_H 
+#endif // VEC2_H
