@@ -147,7 +147,8 @@ int main(void) {
     int num_iterations_log[NUM_TRIALS];
 
     // Set OpenMP thread count
-    omp_set_num_threads(omp_get_num_procs());
+    //omp_set_num_threads(omp_get_num_procs());
+    omp_set_num_threads(20);
     printf("Running with %d threads\n", omp_get_num_procs());
 
     for (i = 0; i < NUM_TRIALS; i++) {
