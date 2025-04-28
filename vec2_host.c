@@ -28,6 +28,7 @@ HOST_DEVICE float vec2_mag(Vec2 v) {
 
 HOST_DEVICE Vec2 vec2_normalize(Vec2 v) {
     float mag = vec2_mag(v);
-    if (mag == 0.0f) return vec2_zero();
+    if (mag == 0.0f)
+        return vec2_zero();
     return vec2_mul(v, 1.0f / mag);
 }

@@ -1,11 +1,11 @@
-#include <SDL/SDL.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <math.h>
-#include <time.h>
 #include "body.h"
 #include "quadtree.h"
+#include <SDL/SDL.h>
+#include <math.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
@@ -22,22 +22,22 @@
 #define MAX_VELOCITY 1.0f
 #define TIME_SCALE 1.0f
 
-SDL_Surface* screen = NULL;
-Body* bodies = NULL;
-Quadtree* quadtree = NULL;
+SDL_Surface *screen = NULL;
+Body *bodies = NULL;
+Quadtree *quadtree = NULL;
 
-Body* d_bodies = NULL;
-Quadtree* d_quadtree = NULL;
-Node* d_nodes = NULL; // <- device nodes array
+Body *d_bodies = NULL;
+Quadtree *d_quadtree = NULL;
+Node *d_nodes = NULL; // <- device nodes array
 
-void update_simulation_gpu(Body* d_bodies, Quadtree* d_quadtree, int num_bodies, float dt, float gravity);
+void update_simulation_gpu(Body *d_bodies, Quadtree *d_quadtree, int num_bodies, float dt, float gravity);
 void initialize_simulation(int num_bodies);
 void update_simulation(float dt, int num_bodies);
 void cleanup_simulation(void);
 
 void initialize_simulation(int num_bodies) {
     srand((unsigned int)time(NULL));
-    bodies = (Body*)malloc(num_bodies * sizeof(Body));
+    bodies = (Body *)malloc(num_bodies * sizeof(Body));
 
     float center_x = WINDOW_WIDTH / 2.0f;
     float center_y = WINDOW_HEIGHT / 2.0f;
@@ -62,12 +62,12 @@ void initialize_simulation(int num_bodies) {
 
     quadtree = quadtree_new(THETA, EPSILON);
 
-    cudaMalloc((void**)&d_bodies, num_bodies * sizeof(Body));
-    cudaMalloc((void**)&d_quadtree, sizeof(Quadtree));
-    cudaMalloc((void**)&d_nodes, quadtree->capacity * sizeof(Node));
+    cudaMalloc((void **)&d_bodies, num_bodies * sizeof(Body));
+    cudaMalloc((void **)&d_quadtree, sizeof(Quadtree));
+    cudaMalloc((void **)&d_nodes, quadtree->capacity * sizeof(Node));
 }
 
-void handle_wall_collisions(Body* body) {
+void handle_wall_collisions(Body *body) {
     float damping = 0.8f;
 
     if (body->pos.x - body->radius < 0) {
@@ -148,7 +148,7 @@ int main(void) {
     int num_iterations_log[NUM_TRIALS];
 
     for (i = 0; i < NUM_TRIALS; i++) {
-        num_bodies = a*i*i + b*i + c;
+        num_bodies = a * i * i + b * i + c;
         printf("num_bodies: %d\n", num_bodies);
 
         if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -181,7 +181,8 @@ int main(void) {
             float dt = (current_time - last_time) / 1000.0f;
             last_time = current_time;
 
-            if (dt > 0.05f) dt = 0.05f;
+            if (dt > 0.05f)
+                dt = 0.05f;
 
             update_simulation(dt, num_bodies);
             render(num_bodies);
@@ -203,8 +204,8 @@ int main(void) {
     }
 
     printf("num_bodies,num_iterations\n");
-    for(i = 0; i < NUM_TRIALS; i++) {
-        printf("%d %.3f\n", num_bodies_log[i], (float)num_iterations_log[i]/10.0);
+    for (i = 0; i < NUM_TRIALS; i++) {
+        printf("%d %.3f\n", num_bodies_log[i], (float)num_iterations_log[i] / 10.0);
     }
 
     return 0;

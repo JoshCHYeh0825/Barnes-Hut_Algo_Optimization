@@ -1,6 +1,6 @@
-#include "vec2.h"
 #include "body.h"
 #include "quadtree.h"
+#include "vec2.h"
 #include "vec2_CUDA.cu"
 
 #include <cuda_runtime.h>
@@ -8,7 +8,7 @@
 
 extern "C" {
 
-__device__ Vec2 quadtree_acc_GPU(Quadtree* qt, Vec2 pos) {
+__device__ Vec2 quadtree_acc_GPU(Quadtree *qt, Vec2 pos) {
     float acc_x = 0.0f, acc_y = 0.0f;
 
     unsigned int stack[16384]; // fixed stack depth
@@ -17,7 +17,7 @@ __device__ Vec2 quadtree_acc_GPU(Quadtree* qt, Vec2 pos) {
 
     while (stack_size > 0) {
         unsigned int node_index = stack[--stack_size];
-        Node* n = &qt->nodes[node_index];
+        Node *n = &qt->nodes[node_index];
 
         float dx = n->pos.x - pos.x;
         float dy = n->pos.y - pos.y;
@@ -27,8 +27,9 @@ __device__ Vec2 quadtree_acc_GPU(Quadtree* qt, Vec2 pos) {
             continue;
         }
 
-        if ((n->children[0] == UINT_MAX && n->children[1] == UINT_MAX &&
-            n->children[2] == UINT_MAX && n->children[3] == UINT_MAX) || (n->size * n->size < d_sq * qt->t_sq)) {
+        if ((n->children[0] == UINT_MAX && n->children[1] == UINT_MAX && n->children[2] == UINT_MAX &&
+             n->children[3] == UINT_MAX) ||
+            (n->size * n->size < d_sq * qt->t_sq)) {
 
             float denom = powf(d_sq + qt->e_sq, 1.5f);
             if (denom > 0.0f) {
@@ -49,9 +50,10 @@ __device__ Vec2 quadtree_acc_GPU(Quadtree* qt, Vec2 pos) {
     return vec2_new(acc_x, acc_y);
 }
 
-__global__ void update_bodies_kernel(Body* bodies, Quadtree* quadtree, int num_bodies, float dt, float G) {
+__global__ void update_bodies_kernel(Body *bodies, Quadtree *quadtree, int num_bodies, float dt, float G) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx >= num_bodies) return;
+    if (idx >= num_bodies)
+        return;
 
     Vec2 acc = quadtree_acc_GPU(quadtree, bodies[idx].pos);
     bodies[idx].acc = vec2_mul(acc, G);
@@ -60,11 +62,10 @@ __global__ void update_bodies_kernel(Body* bodies, Quadtree* quadtree, int num_b
     bodies[idx].pos = vec2_add(bodies[idx].pos, vec2_mul(bodies[idx].vel, dt));
 }
 
-void update_simulation_gpu(Body* d_bodies, Quadtree* d_quadtree, int num_bodies, float dt, float gravity) {
+void update_simulation_gpu(Body *d_bodies, Quadtree *d_quadtree, int num_bodies, float dt, float gravity) {
     int threadsPerBlock = 256; // Adjust for experimentation
     int blocksPerGrid = (num_bodies + threadsPerBlock - 1) / threadsPerBlock;
     update_bodies_kernel<<<blocksPerGrid, threadsPerBlock>>>(d_bodies, d_quadtree, num_bodies, dt, gravity);
     cudaDeviceSynchronize();
 }
-
 }

@@ -1,8 +1,8 @@
 #ifndef QUADTREE_H
 #define QUADTREE_H
 
-#include "vec2.h"
 #include "body.h"
+#include "vec2.h"
 
 // Structure to represent a quadrant
 typedef struct {
@@ -28,20 +28,19 @@ typedef struct {
     float size;               // Size of quadrant
 } Node;
 
-
 // Structure to represent the quadtree
 typedef struct {
-    float t_sq;             // Theta squared (for approximation)
-    float e_sq;             // Epsilon squared (for softening)
-    Node* nodes;            // Array of nodes
-    unsigned int* parents;  // Array of parent indices
-    unsigned int node_count;    // Number of nodes
-    unsigned int parent_count;  // Number of parent nodes
-    unsigned int capacity;      // Capacity of nodes array
+    float t_sq;                // Theta squared (for approximation)
+    float e_sq;                // Epsilon squared (for softening)
+    Node *nodes;               // Array of nodes
+    unsigned int *parents;     // Array of parent indices
+    unsigned int node_count;   // Number of nodes
+    unsigned int parent_count; // Number of parent nodes
+    unsigned int capacity;     // Capacity of nodes array
 } Quadtree;
 
 // Create a new quadrant containing all bodies
-Quad quad_new_containing(Body* bodies, int count);
+Quad quad_new_containing(Body *bodies, int count);
 
 // Find which quadrant a position falls into (0-3)
 unsigned int quad_find_quadrant(Vec2 center, Vec2 pos);
@@ -50,39 +49,39 @@ unsigned int quad_find_quadrant(Vec2 center, Vec2 pos);
 Quad quad_into_quadrant(Quad quad, unsigned int quadrant);
 
 // Subdivide a quadrant into four subquadrants
-void quad_subdivide(Quad* quad, Quad* subquads);
+void quad_subdivide(Quad *quad, Quad *subquads);
 
 // Create a new node
 Node node_new(void);
 
 // Check if a node is a leaf (has no children)
-int node_is_leaf(Node* node);
+int node_is_leaf(Node *node);
 
 // Check if a node is a branch (has children)
-int node_is_branch(Node* node);
+int node_is_branch(Node *node);
 
 // Check if a node is empty (has no mass)
-int node_is_empty(Node* node);
+int node_is_empty(Node *node);
 
 // Create a new quadtree
-Quadtree* quadtree_new(float theta, float epsilon);
+Quadtree *quadtree_new(float theta, float epsilon);
 
 // Clear the quadtree and initialize with a new quadrant
-void quadtree_clear(Quadtree* qt, Quad quad);
+void quadtree_clear(Quadtree *qt, Quad quad);
 
 // Subdivide a node in the quadtree
-unsigned int quadtree_subdivide(Quadtree* qt, unsigned int node_index);
+unsigned int quadtree_subdivide(Quadtree *qt, unsigned int node_index);
 
 // Insert a position and mass into the quadtree
-void quadtree_insert(Quadtree* qt, Vec2 pos, float mass);
+void quadtree_insert(Quadtree *qt, Vec2 pos, float mass);
 
 // Propagate center of mass calculations up the tree
-void quadtree_propagate(Quadtree* qt);
+void quadtree_propagate(Quadtree *qt);
 
 // Calculate acceleration due to gravity at a position
 // Vec2 quadtree_acc(Quadtree* qt, Vec2 pos);
 
 // Free the quadtree
-void quadtree_free(Quadtree* qt);
+void quadtree_free(Quadtree *qt);
 
-#endif // QUADTREE_H 
+#endif // QUADTREE_H
