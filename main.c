@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <time.h>
 
+#define THREAD_COUNT 32
+
 #define WINDOW_WIDTH 450
 #define WINDOW_HEIGHT 450
 #define G 6.67430e-2f
