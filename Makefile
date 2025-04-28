@@ -1,7 +1,7 @@
 CC = gcc
 
-CFLAGS = -Wall -Wextra -O3 -ffast-math `sdl-config --cflags`
-LDFLAGS = `sdl-config --libs` -lm
+CFLAGS = -Wall -Wextra -O3 -ffast-math `sdl-config --cflags` -fopenmp
+LDFLAGS = `sdl-config --libs` -lm -fopenmp
 
 SRCS = vec2.c body.c quadtree.c
 OBJS = $(SRCS:.c=.o)
