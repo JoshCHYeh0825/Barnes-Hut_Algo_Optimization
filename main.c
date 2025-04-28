@@ -3,6 +3,7 @@
 #include <SDL/SDL.h>
 #include <limits.h>
 #include <math.h>
+#include <omp.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -84,10 +85,14 @@ void update_simulation(float dt, int num_bodies) {
         quadtree_insert(quadtree, bodies[i].pos, bodies[i].mass);
     quadtree_propagate(quadtree);
 
+// Parallelize acceleration calculation
+#pragma omp parallel for
     for (int i = 0; i < num_bodies; i++) {
         bodies[i].acc = vec2_mul(quadtree_acc(quadtree, bodies[i].pos), G);
     }
 
+// Parallelize position/velocity update
+#pragma omp parallel for
     for (int i = 0; i < num_bodies; i++) {
         bodies[i].vel = vec2_add(bodies[i].vel, vec2_mul(bodies[i].acc, dt * 0.5f));
         bodies[i].pos = vec2_add(bodies[i].pos, vec2_mul(bodies[i].vel, dt));
@@ -100,6 +105,8 @@ void update_simulation(float dt, int num_bodies) {
         quadtree_insert(quadtree, bodies[i].pos, bodies[i].mass);
     quadtree_propagate(quadtree);
 
+// Parallelize second acceleration calculation
+#pragma omp parallel for
     for (int i = 0; i < num_bodies; i++) {
         Vec2 new_acc = vec2_mul(quadtree_acc(quadtree, bodies[i].pos), G);
         bodies[i].vel = vec2_add(bodies[i].vel, vec2_mul(new_acc, dt * 0.5f));
@@ -138,6 +145,10 @@ int main(void) {
 
     int num_bodies_log[NUM_TRIALS];
     int num_iterations_log[NUM_TRIALS];
+
+    // Set OpenMP thread count
+    omp_set_num_threads(omp_get_num_procs());
+    printf("Running with %d threads\n", omp_get_num_procs());
 
     for (i = 0; i < NUM_TRIALS; i++) {
         bodies = NULL;
