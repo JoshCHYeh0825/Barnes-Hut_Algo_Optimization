@@ -86,13 +86,13 @@ void update_simulation(float dt, int num_bodies) {
     quadtree_propagate(quadtree);
 
 // Parallelize acceleration calculation
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for
     for (int i = 0; i < num_bodies; i++) {
         bodies[i].acc = vec2_mul(quadtree_acc(quadtree, bodies[i].pos), G);
     }
 
 // Parallelize position/velocity update
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for
     for (int i = 0; i < num_bodies; i++) {
         bodies[i].vel = vec2_add(bodies[i].vel, vec2_mul(bodies[i].acc, dt * 0.5f));
         bodies[i].pos = vec2_add(bodies[i].pos, vec2_mul(bodies[i].vel, dt));
@@ -106,7 +106,7 @@ void update_simulation(float dt, int num_bodies) {
     quadtree_propagate(quadtree);
 
 // Parallelize second acceleration calculation
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for
     for (int i = 0; i < num_bodies; i++) {
         Vec2 new_acc = vec2_mul(quadtree_acc(quadtree, bodies[i].pos), G);
         bodies[i].vel = vec2_add(bodies[i].vel, vec2_mul(new_acc, dt * 0.5f));
