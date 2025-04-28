@@ -148,7 +148,7 @@ int main(void) {
 
     // Set OpenMP thread count
     // int THREAD_COUNT = omp_get_num_procs();
-    int THREAD_COUNT = 4;
+    int THREAD_COUNT = 32;
     omp_set_num_threads(THREAD_COUNT);
     printf("Running with %d threads\n", THREAD_COUNT);
 
