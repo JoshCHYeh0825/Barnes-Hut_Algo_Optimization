@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <time.h>
 
+#define THREAD_COUNT 32
+
 #define WINDOW_WIDTH 450
 #define WINDOW_HEIGHT 450
 #define G 6.67430e-2f
@@ -147,8 +149,6 @@ int main(void) {
     int num_iterations_log[NUM_TRIALS];
 
     // Set OpenMP thread count
-    // int THREAD_COUNT = omp_get_num_procs();
-    int THREAD_COUNT = 32;
     omp_set_num_threads(THREAD_COUNT);
     printf("Running with %d threads\n", THREAD_COUNT);
 
