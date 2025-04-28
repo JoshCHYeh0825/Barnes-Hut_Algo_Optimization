@@ -12,6 +12,6 @@ typedef struct {
 } Body;
 
 Body body_new(Vec2 pos, Vec2 vel, float mass, float radius);
-void body_update(Body* body, float dt);
+void body_update(Body *body, float dt);
 
-#endif // BODY_H 
+#endif // BODY_H
