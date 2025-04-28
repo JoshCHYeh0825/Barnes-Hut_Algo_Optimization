@@ -141,7 +141,6 @@ void render(int num_bodies) {
 }
 
 int main(void) {
-    omp_set_num_threads(12); // Use exactly 12 threads
     int a = 1000;
     int b = 500;
     int c = 100;
@@ -151,6 +150,10 @@ int main(void) {
 
     int num_bodies_log[NUM_TRIALS];
     int num_iterations_log[NUM_TRIALS];
+
+    // Set OpenMP thread count
+    omp_set_num_threads(THREAD_COUNT);
+    printf("Running with %d threads\n", THREAD_COUNT);
 
     for (i = 0; i < NUM_TRIALS; i++) {
         bodies = NULL;
