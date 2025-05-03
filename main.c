@@ -105,7 +105,6 @@ void update_simulation(float dt, int num_bodies) {
     Quadtree temp = *quadtree;
     temp.nodes = d_nodes;
     cudaMemcpy(d_quadtree, &temp, sizeof(Quadtree), cudaMemcpyHostToDevice);
-    // ✅ Now the device quadtree points to device memory!
 
     update_simulation_gpu(d_bodies, d_quadtree, num_bodies, dt, G);
 
