@@ -99,7 +99,7 @@ void update_simulation(float dt, int num_bodies) {
 
     cudaMemcpy(d_bodies, bodies, num_bodies * sizeof(Body), cudaMemcpyHostToDevice);
 
-    // 💥 Deep Copy the quadtree
+    // Deep Copy the quadtree
     cudaMemcpy(d_nodes, quadtree->nodes, quadtree->capacity * sizeof(Node), cudaMemcpyHostToDevice);
 
     Quadtree temp = *quadtree;
