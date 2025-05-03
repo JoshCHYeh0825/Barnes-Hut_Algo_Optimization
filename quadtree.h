@@ -12,12 +12,12 @@ typedef struct {
 
 // Structure to represent a node in the quadtree
 typedef struct {
-    unsigned int children; // Index of first child (0 if leaf)
-    unsigned int next;     // Index of next node at same level
-    Vec2 pos;              // Center of mass
-    float mass;            // Total mass
-    Quad quad;             // The quadrant this node represents
+    unsigned int children[4]; // Instead of 1 child index, store 4 explicitly
+    Vec2 pos;                 // Center of mass
+    float mass;               // Total mass
+    float size;               // Size of quadrant (instead of full quad)
 } Node;
+
 
 // Structure to represent the quadtree
 typedef struct {
